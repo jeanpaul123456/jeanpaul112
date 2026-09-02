@@ -1,4 +1,5 @@
-Internal Operations Service Hub
+##Internal Operations Service Hub
+
 A company-internal system for requesting and tracking help from departments such as IT, HR, and Finance.
 
 Overview

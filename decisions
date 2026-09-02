@@ -1,66 +1,80 @@
-ADR-001: Choose a Centralized Architecture for v0.1
-Problem
+# ADR-001: Use a Centralized Architecture for v0.1
 
-The system must allow employees to create and follow internal service requests, while authorized department staff can receive, manage, and complete requests for their departments.
+## Problem
 
-At this stage, the expected number of employees, daily requests, and overall system traffic are not clearly defined.
+The system needs to allow employees to submit and track internal requests, while department staff are responsible for handling requests assigned to their departments.
 
-Because the future system load is still uncertain, introducing a distributed architecture such as microservices or message queues may add unnecessary complexity.
+At the current stage of the project, the expected number of users, daily requests, and system traffic are not known.
 
-The architecture should therefore remain simple and easy to modify while the project requirements are still developing.
+Since the future workload is uncertain, using a distributed architecture such as microservices or message queues from the beginning could introduce complexity that is not currently necessary.
 
-Options
-Option 1: Simple Centralized Architecture
+The architecture should therefore remain simple and easy to maintain until the system requirements become clearer.
 
-Use one App/Web application that communicates with a single Backend. The Backend is responsible for communicating with persistent storage.
+---
 
-Advantages:
+## Options
 
-Easy to develop and maintain.
-Meets the requirements currently identified.
-Requires fewer components.
-Easier to understand and troubleshoot.
-Allows the system to change easily as requirements evolve.
-Option 2: Distributed Architecture
+### Option 1: Simple Centralized Architecture
 
-Use several separate components from the beginning, such as microservices, message queues, Redis, or other external services.
+Use one App/Web application connected to a single Backend, with the Backend communicating with persistent storage.
 
-Advantages:
+**Advantages:**
 
-Components can be scaled separately.
-Better suited for systems with high traffic and complex workloads.
-Can support more advanced scalability requirements.
+* Simple to develop and maintain.
+* Satisfies the current system requirements.
+* Requires fewer components.
+* Easier to test and troubleshoot.
+* Makes future changes easier while the requirements are still evolving.
 
-Disadvantages:
+### Option 2: Distributed Architecture
 
-More difficult to design and maintain.
-Requires additional infrastructure and configuration.
-Creates more operational complexity.
-The current project requirements do not require this level of architecture.
-Decision
+Use multiple independent components from the beginning, such as microservices, message queues, Redis, or other external services.
 
-For version 0.1, the project will use a simple centralized architecture.
+**Advantages:**
 
-The App/Web application will communicate directly with the Backend, and the Backend will communicate with the persistent database.
+* Individual components can be scaled independently.
+* Suitable for systems with large workloads.
+* Can provide better support for future scalability requirements.
 
-No additional distributed components will be introduced at this stage.
+**Disadvantages:**
 
-If the number of users, requests, or system requirements increases significantly in the future, the architecture can be changed accordingly.
+* Increases development and maintenance complexity.
+* Requires additional infrastructure.
+* Introduces more dependencies between components.
+* The current requirements do not justify this approach.
 
-Consequences
-Positive
-The system remains simple during the initial development stage.
-Development and testing are easier.
-Maintenance requires less effort.
-There are fewer components and dependencies to manage.
-The architecture is sufficient for the currently known requirements.
-Future changes can be introduced without unnecessary complexity at the beginning.
-Negative
-The system does not provide the same independent scaling capabilities as a distributed architecture.
-A single Backend may become a limitation if the system grows considerably.
-Additional architectural changes may be required if traffic becomes much higher than expected.
-Future Consideration
+---
 
-When reliable information becomes available about the number of users, request volume, traffic, performance, and scalability requirements, this architectural decision should be reviewed.
+## Decision
 
-If the system grows beyond what the centralized architecture can comfortably support, components such as caching, message queues, or separate services can be introduced when they provide a clear benefit.
+For **v0.1**, we will use a **simple centralized architecture**.
+
+The App/Web will communicate directly with the Backend, and the Backend will communicate with persistent storage.
+
+Additional distributed components will not be introduced at this stage because they are not required by the current system.
+
+If the number of users, requests, or performance requirements increases significantly, the architecture can be reconsidered and expanded.
+
+---
+
+## Consequences
+
+### Positive
+
+* The initial system remains simple.
+* Development and testing are easier.
+* Maintenance is less complicated.
+* There are fewer components and dependencies.
+* The architecture is appropriate for the current requirements.
+
+### Negative
+
+* Components cannot be scaled independently as easily as with a distributed architecture.
+* The Backend could become a limitation if the system grows significantly.
+* Future architectural changes may be required if the system experiences much higher traffic.
+
+### Future Consideration
+
+When more information becomes available about the number of users, request volume, performance, and scalability needs, this decision should be reviewed.
+
+If the centralized architecture is no longer sufficient, additional solutions such as caching, message queues, or separate services can be introduced based on actual system requirements.
