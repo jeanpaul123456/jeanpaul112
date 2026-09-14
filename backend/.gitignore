@@ -1,7 +1,12 @@
 # compiled output
 /dist
+/dist-local
 /node_modules
 /build
+/src/generated/
+/dev.db
+/server-output.log
+/server-error.log
 
 # Logs
 logs

@@ -3,6 +3,102 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
+import { PrismaService } from './../src/database/prisma.service.js';
+import { RequestStatus } from './../src/generated/prisma/client.js';
+
+function createTestDatabase() {
+  const requests = new Map([
+    [
+      '1',
+      {
+        id: '1',
+        ticketNumber: 'REQ-1001',
+        creatorId: 'employee-1',
+        departmentId: 'IT',
+        status: RequestStatus.SUBMITTED,
+        createdAt: new Date('2026-09-01T09:00:00.000Z'),
+        updatedAt: new Date('2026-09-01T09:00:00.000Z'),
+        completedAt: null,
+        creator: {
+          id: 'employee-1',
+          displayName: 'Jean-Paul Chouaifaty',
+          email: 'jeanpaul.chouaifaty@gmail.com',
+        },
+        department: {
+          id: 'IT',
+          name: 'Information Technology',
+          slug: 'it',
+        },
+        history: [
+          {
+            toStatus: RequestStatus.SUBMITTED,
+            occurredAt: new Date('2026-09-01T09:00:00.000Z'),
+            note: null,
+            changedBy: null,
+          },
+        ],
+      },
+    ],
+  ]);
+
+  const database = {
+    serviceRequest: {
+      findFirst: async ({
+        where,
+      }: {
+        where: { OR: Array<{ id?: string; ticketNumber?: string }> };
+      }) => {
+        const identifier = where.OR[0].id ?? where.OR[1].ticketNumber;
+        return (
+          [...requests.values()].find(
+            (request) =>
+              request.id === identifier || request.ticketNumber === identifier,
+          ) ?? null
+        );
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: string; status: RequestStatus };
+        data: { status: RequestStatus; completedAt: Date | null };
+      }) => {
+        const record = requests.get(where.id);
+        if (!record || record.status !== where.status) return { count: 0 };
+
+        record.status = data.status;
+        record.completedAt = data.completedAt;
+        record.updatedAt = new Date();
+        return { count: 1 };
+      },
+    },
+    requestStatusHistory: {
+      create: async ({
+        data,
+      }: {
+        data: {
+          requestId: string;
+          fromStatus: RequestStatus;
+          toStatus: RequestStatus;
+        };
+      }) => {
+        const record = requests.get(data.requestId);
+        if (!record) throw new Error('Request not found');
+
+        record.history.push({
+          toStatus: data.toStatus,
+          occurredAt: new Date(),
+          note: null,
+          changedBy: null,
+        });
+      },
+    },
+    $transaction: async (callback: (transaction: typeof database) => Promise<unknown>) =>
+      callback(database),
+  };
+
+  return database as unknown as PrismaService;
+}
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -10,7 +106,10 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue(createTestDatabase())
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -31,11 +130,76 @@ describe('AppController (e2e)', () => {
       .expect({ requestId: '1', status: 'Assigned' });
   });
 
-  it('rejects an invalid Week 1 status transition', () => {
-    return request(app.getHttpServer())
+  it('accepts the complete valid request lifecycle', async () => {
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'Assigned' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'In Progress' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'Completed' })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get('/requests/1')
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      requestId: '1',
+      ticketNumber: 'REQ-1001',
+      employee: { id: 'employee-1', displayName: 'Jean-Paul Chouaifaty' },
+      department: { id: 'IT', name: 'Information Technology' },
+      status: 'Completed',
+    });
+    expect(response.body.history).toHaveLength(4);
+  });
+
+  it('rejects an invalid Week 1 status transition without changing the request', async () => {
+    await request(app.getHttpServer())
       .patch('/requests/1/status')
       .send({ status: 'Completed' })
       .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/requests/1')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.status).toBe('Submitted');
+        expect(response.body.history).toHaveLength(1);
+      });
+  });
+
+  it('rejects moving a completed request back to in progress', async () => {
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'Assigned' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'In Progress' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'Completed' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/requests/1/status')
+      .send({ status: 'In Progress' })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/requests/1')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.status).toBe('Completed');
+        expect(response.body.history).toHaveLength(4);
+      });
   });
 
   it('returns tracking information for a known order', () => {
