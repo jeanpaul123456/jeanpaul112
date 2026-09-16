@@ -1,0 +1,5 @@
+.tmp/
+node_modules/
+frontend/dist/
+test-results/
+playwright-report/

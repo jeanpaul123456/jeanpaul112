@@ -1,0 +1,22 @@
+{
+  "name": "internal-operations-service-hub",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "setup": "npm --prefix backend ci --no-audit --no-fund && npm --prefix frontend ci --no-audit --no-fund && npm run db:setup",
+    "db:setup": "npm --prefix backend run db:setup",
+    "build": "npm --prefix backend run db:generate && npm --prefix backend run build && npm --prefix frontend run build",
+    "start": "npm --prefix backend run start:prod",
+    "test": "npm --prefix backend test",
+    "test:api": "npm --prefix backend run test:e2e",
+    "test:e2e": "playwright test",
+    "check": "npm run build && npm test && npm run test:api && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0"
+  }
+}

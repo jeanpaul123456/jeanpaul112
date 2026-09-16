@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum RequestStatus {
+  SUBMITTED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum RequestPriority {
+  High
+  Medium
+  Low
+}
+
+model Employee {
+  id          String @id
+  displayName String
+  email       String @unique
+  requests    ServiceRequest[]
+  memberships DepartmentMembership[]
+  changes     RequestStatusHistory[]
+}
+
+model Department {
+  id          String @id
+  name        String
+  slug        String @unique
+  requests    ServiceRequest[]
+  memberships DepartmentMembership[]
+}
+
+model DepartmentMembership {
+  employeeId   String
+  departmentId String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id])
+  @@id([employeeId, departmentId])
+}
+
+model RequestCounter {
+  id    String @id
+  value Int
+}
+
+model ServiceRequest {
+  id           String @id @default(cuid())
+  ticketNumber String @unique
+  title        String
+  description  String
+  priority     RequestPriority @default(Medium)
+  creatorId    String
+  departmentId String
+  status       RequestStatus @default(SUBMITTED)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  completedAt  DateTime?
+  completionReadAt DateTime?
+  creator      Employee @relation(fields: [creatorId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id])
+  history      RequestStatusHistory[]
+  @@index([creatorId])
+  @@index([departmentId, status])
+}
+
+model RequestStatusHistory {
+  id          String @id @default(cuid())
+  requestId   String
+  changedById String?
+  fromStatus  RequestStatus?
+  toStatus    RequestStatus
+  occurredAt  DateTime @default(now())
+  note        String?
+  request     ServiceRequest @relation(fields: [requestId], references: [id])
+  changedBy   Employee? @relation(fields: [changedById], references: [id])
+  @@index([requestId])
+}

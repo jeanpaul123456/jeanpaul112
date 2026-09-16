@@ -1,9 +1,17 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+} from '@nestjs/common';
 import { TrackingService } from './tracking.service.js';
 
 @Controller('api/tracking')
 export class TrackingController {
-  constructor(private readonly trackingService: TrackingService) {}
+  constructor(
+    @Inject(TrackingService) private readonly trackingService: TrackingService,
+  ) {}
 
   @Get(':orderId')
   getTracking(@Param('orderId') orderId: string) {

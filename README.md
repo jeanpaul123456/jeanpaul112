@@ -1,135 +1,163 @@
-# Internal Operations Service Hub — Week 3
+# Internal Operations Service Hub — v0.3
 
-A focused internal service-request application where employees submit requests to IT, Human Resources, or Finance and department staff process them.
+A narrow employee-to-department request flow built with **React + Vite**, **NestJS**, and **Prisma + SQLite**, in the original repository.
 
-The project delivers one complete, user-facing flow:
+Employees choose IT, Human Resources, or Finance, describe a problem, and select High, Medium, or Low priority. Receiving staff accepts and processes the request. The employee follows named stages and dated messages until completion. The interface intentionally has no numeric dashboard counters or search/filter toolbar.
 
-1. An employee selects their identity in the React frontend.
-2. They submit a service request to a department.
-3. The backend persists it in SQLite and returns a friendly ticket number such as `REQ-1005`.
-4. The request can be loaded with that ticket number.
-5. A staff member in the assigned department can claim the request.
+## Prerequisites
 
-## Technology
+- Node.js **22.13+** on the Node 22 line, or a newer compatible Node version (verified with Node 26.8).
+- npm and Git.
+- Internet access for npm packages and the Playwright browser download on first setup.
+- Available local ports 3000 (app) and 3101 (isolated browser tests).
 
-- React + Vite frontend
-- NestJS + TypeScript backend
-- Prisma ORM
-- SQLite local database
-- Vitest + Supertest automated tests
+## Clean installation
 
-## Project structure
+### Using the project folder
 
-```text
-frontend/                    React user interface
-backend/                     NestJS API and SQLite database
-backend/prisma/              Prisma schema, seed data, and migration setup
-backend/test/                Endpoint and SQLite integration tests
-docs/week3-full-stack-delivery.md
+The project is a normal folder containing `frontend/`, `backend/`, `docs/`, and the root `package.json`. A ZIP is only an optional transport copy; it is not needed to run or edit the project. Open a terminal in this folder and run the commands below starting at `npm ci`. If dependencies and the database are already prepared, use `npm run build` followed by `npm start`.
+
+Stop a running development server before reinstalling dependencies. Keep `backend/dev.db` to preserve your saved requests and notification read state.
+
+### Installing from GitHub
+
+Run these commands in PowerShell, Terminal, or another shell:
+
+```sh
+git clone https://github.com/jeanpaul123456/jeanpaul112.git
+cd jeanpaul112
+npm ci
+npm run setup
+npm run build
+npm start
 ```
 
-## Run locally
+If you already have this folder, start with `npm ci` inside it. `setup` installs the backend and frontend from their lockfiles, generates Prisma, creates SQLite tables, and seeds demo people and departments. No `.env` file is required. Existing requests are preserved when setup is repeated.
 
-### Prerequisites
+Open **http://localhost:3000/app/**. Keep the terminal running. Stop it with Ctrl+C.
 
-- Node.js 20 or later
-- npm
+The backend serves the compiled React app from `frontend/dist`. After editing code, stop the server, run `npm run build`, then `npm start` again.
 
-### 1. Install every workspace
+## Development with live reload (optional)
 
-```bash
-npm install
+After setup, use two terminals in the repository root:
+
+```sh
+npm --prefix backend run start:dev
 ```
 
-This installs the backend, React frontend, and shared root commands. Prisma's
-generated client is created automatically.
-
-### 2. Prepare the local database
-
-```bash
-cp backend/.env.example backend/.env
-npm run db:setup
+```sh
+npm --prefix frontend run dev
 ```
 
-The SQLite database is created locally at `backend/dev.db`. Run this again to
-restore the original sample employees and requests.
+Open http://localhost:5173/app/. Vite proxies API requests to the backend on port 3000.
 
-### 3. Start both applications
+## Exercise the complete flow
 
-```bash
-npm run dev
-```
+1. Choose **Charbel Chouaifaty** in Demo employee.
+2. Click **New request**. Enter a title, problem description, destination department, and priority. Send it to **Information Technology**.
+3. Open the request in My requests: it is Submitted, and the remaining stages are Upcoming.
+4. Choose **Jean-Paul Chouaifaty**, open Department inbox, and open the request.
+5. Click Accept request, then Start work, then Mark completed. Include a useful message such as “Replaced the charger and verified startup.”
+6. Return to Charbel. Open Notifications, then open the completion notification. Verify the status, named actors, dates, and resolution message. The notification becomes read and stays read after a reload.
+7. Restart the server. The request is still saved in `backend/dev.db`.
 
-This starts the NestJS API on [http://localhost:3000](http://localhost:3000)
-and the React development server on [http://localhost:5173](http://localhost:5173).
-Open the React application at [http://localhost:5173/app/](http://localhost:5173/app/).
+The UI calls the API's **Assigned** state **Accepted**. Staff may reject an active request with a required reason. Completed/rejected requests cannot change state. All employees can submit to all departments.
 
-To serve the production React build from NestJS instead, run `npm run build`
-inside `frontend`, then start the backend from `backend` with `npm run start:prod`.
-
-## Sample employees and requests
-
-| Ticket | Requester | Request | Department | Status |
-|---|---|---|---|---|
-| `REQ-1001` | Jean-Paul Chouaifaty | Laptop does not start | IT | Submitted |
-| `REQ-1002` | Elie Massoud | Annual leave request | HR | Completed |
-| `REQ-1003` | Maria Boutros | Travel expense reimbursement | Finance | Rejected |
-| `REQ-1004` | Charbel Chouaifaty | VPN access request | IT | In Progress |
-
-Massoud, George Alam, and Jean-Paul are seeded as department staff members for the authorization example.
-
-## API contract
-
-| Method | Endpoint | Purpose |
+| Employee | Demo ID (API only) | Staff inbox |
 |---|---|---|
-| `POST` | `/requests` | Create a request. Requires `x-employee-id` and `title`, `description`, `departmentSlug`. |
-| `GET` | `/requests/:ticketNumber` | Retrieve a persisted request, requester, department, and history. |
-| `POST` | `/requests/:ticketNumber/claim` | Claim a submitted request. Requires `x-employee-id`. |
-| `PATCH` | `/requests/:ticketNumber/status` | Apply a permitted status transition. |
+| Jean-Paul Chouaifaty | employee-1 | Information Technology |
+| Elie Massoud | employee-2 | Human Resources |
+| Maria Boutros | employee-3 | Finance |
+| Charbel Chouaifaty | employee-4 | None; requester |
 
-Status lifecycle:
+**Authorization demonstration:** Jean-Paul can process an IT request; Elie cannot. The UI does not show other departments' inboxes, and the API also rejects a forged wrong-department operation with `403`. A sender can read their own request but cannot process it unless they belong to the receiving department.
 
-```text
-Submitted → Assigned → In Progress → Completed
+**Local demo identity:** the selector supplies `x-employee-id`. It is intentionally not production login: callers can switch that header. Membership and ownership checks are enforced for the selected identity. Company authentication is outside this slice; the server binds to the local machine.
+
+## Automated tests
+
+Install the Chromium test browser once:
+
+```sh
+npx playwright install chromium
 ```
 
-Requests may also be rejected. Invalid transitions are rejected with `400`.
+If Microsoft Edge is already installed on Windows, you can use it without downloading another browser:
 
-## Authorization and error handling
+```powershell
+$env:PLAYWRIGHT_CHANNEL = 'msedge'
+npm run check
+```
 
-- Only staff in the request's assigned department may claim it.
-- Allowed example: Jean-Paul can claim an IT request.
-- Denied example: an employee outside the assigned department receives `403`.
-- Missing title, description, or department produces `400`.
-- An unknown ticket produces `404`; the React UI displays the message.
+This is the browser used for the verified local E2E run. Omit that environment variable to use Playwright's downloaded Chromium.
 
-## Tests
+On Linux, if the browser reports missing system libraries, use `npx playwright install --with-deps chromium`.
 
-Prepare the database first using the commands above, then run:
+Run all verification:
 
-```bash
+```sh
+npm run check
+```
+
+Or run individual layers (browser E2E requires a completed build):
+
+```sh
 npm test
+npm run test:api
 npm run test:e2e
 ```
 
-The suite includes:
+- Unit tests: a real service business rule and frontend progress rendering.
+- API/database tests: NestJS HTTP endpoints plus temporary SQLite, persistence after reconnect, authorization, input rejection, priority, history, and existing tracking/lifecycle regression coverage.
+- Browser E2E: real React → NestJS → SQLite submission and completion; completion notifications and saved read status; wrong-department denial; network failure retains the draft and permits retry; simple interface regression checks.
 
-- A real SQLite integration test for persisted employee, department, request, and history data.
-- Request status business-rule regression tests.
-- API endpoint E2E tests for valid and invalid request transitions.
-- Existing tracking endpoint regression tests.
+Browser tests start their own server on port **3101** and create a new isolated database under `.tmp/`. They do not change `backend/dev.db` or need the normal app to be running. API tests use the OS temporary directory. Playwright retains failure screenshots and traces in `test-results/`; open a trace with `npx playwright show-trace <trace.zip>`.
 
-## Delivery notes
+## Files and API contract
 
-See [docs/week3-full-stack-delivery.md](docs/week3-full-stack-delivery.md) for the Week 3 integrated product-slice summary and verification cases.
+```text
+frontend/src/                 React components, API helper, tracking, styles
+backend/src/                  NestJS routes, business rules, database service
+backend/prisma/               Schema, initial test SQL, non-destructive seed
+backend/test/                 Endpoint and real SQLite tests
+e2e/                          Full browser tests
+scripts/e2e-server.mjs        Isolated test database and server
+docs/api-contract.md          Request/response shapes and error behavior
+docs/week3-full-stack-delivery.md  Assignment evidence and scope
+```
+
+See [the explicit API contract](docs/api-contract.md) and [Week 3 delivery](docs/week3-full-stack-delivery.md).
+
+The main API routes are `/directory`, `POST /requests`, `GET /requests`, `GET /requests?department=it`, `GET /requests/:ticketNumber`, and `PATCH /requests/:ticketNumber/status`. Request endpoints require the demo employee header. Every request is persisted with its description, priority, destination, creator, status, and history.
+
+## Expected failure and recovery
+
+If sending fails before the backend receives it, the form keeps the entered text, displays a connection error, and enables retry. No successful request is invented in the UI. The browser test deliberately exercises this failure. A rare lost response after the server commits can be ambiguous: check My requests before resubmitting; idempotency keys are not implemented.
 
 ## Troubleshooting
 
-**The frontend says it cannot reach the API.** Confirm `npm run dev` is still
-running and open the frontend URL printed by Vite (normally port 5173).
+- **Cannot connect:** keep `npm start` running, use `/app/`, and check the terminal for errors.
+- **Page missing:** run `npm run build`; Nest serves `frontend/dist`, not the source files.
+- **Tables/client missing:** run `npm run db:setup` then rebuild. Do not delete your database to fix this.
+- **Port busy:** stop the conflicting local server or set `PORT` in the backend environment. E2E needs port 3101 free and does not reuse another server.
+- **Browser executable missing:** run `npx playwright install chromium`.
+- **Native tool blocked:** allow the installed Prisma/test runner to execute subprocesses in your development environment; do not disable system-wide protections.
 
-**The database is missing or tests fail before they start.** Run
-`npm run db:setup` from the repository root.
+## Schema changes
 
-**Port 3000 or 5173 is busy.** Stop the other local process using that port,
-then run `npm run dev` again.
+After changing `backend/prisma/schema.prisma`, run database setup and regenerate the isolated-test schema:
+
+```sh
+npm run db:setup
+cd backend
+npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/schema.sql
+```
+
+`prisma db push` is used for this local teaching slice; versioned production migrations and deployment are not part of v0.3.
+
+## Completion notifications
+
+Choose an employee to see their in-app Notifications button. Completed requests appear there with the title, department, and completion time. A dot and short message indicate unread updates. Open a notification to view the request and mark it read; read state is saved in SQLite. Only the requesting employee can read or acknowledge their notification. Existing completed requests also appear.
+
+Notifications refresh every 15 seconds while the page is visible, when the window regains focus, and when opening the panel. This is an in-app feature; it does not send email or operating-system push notifications.

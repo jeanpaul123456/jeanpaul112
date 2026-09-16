@@ -21,7 +21,8 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "db:generate": "prisma generate",
-    "db:migrate": "tsx prisma/setup.mjs",
+    "db:migrate": "prisma db push",
+    "db:setup": "node prisma/prepare.mjs && prisma generate && prisma db push && tsx prisma/seed.mjs",
     "db:seed": "tsx prisma/seed.mjs",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"

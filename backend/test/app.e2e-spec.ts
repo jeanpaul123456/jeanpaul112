@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from './../src/database/prisma.service.js';
 import { RequestStatus } from './../src/generated/prisma/client.js';
@@ -13,12 +12,15 @@ function createTestDatabase() {
       {
         id: '1',
         ticketNumber: 'REQ-1001',
+        title: 'Laptop does not start',
+        description:
+          'The laptop screen remains black when I press the power button.',
         creatorId: 'employee-1',
         departmentId: 'IT',
-        status: RequestStatus.SUBMITTED,
+        status: RequestStatus.SUBMITTED as RequestStatus,
         createdAt: new Date('2026-09-01T09:00:00.000Z'),
         updatedAt: new Date('2026-09-01T09:00:00.000Z'),
-        completedAt: null,
+        completedAt: null as Date | null,
         creator: {
           id: 'employee-1',
           displayName: 'Jean-Paul Chouaifaty',
@@ -31,7 +33,7 @@ function createTestDatabase() {
         },
         history: [
           {
-            toStatus: RequestStatus.SUBMITTED,
+            toStatus: RequestStatus.SUBMITTED as RequestStatus,
             occurredAt: new Date('2026-09-01T09:00:00.000Z'),
             note: null,
             changedBy: null,
@@ -42,6 +44,13 @@ function createTestDatabase() {
   ]);
 
   const database = {
+    employee: { findUnique: async () => ({ id: 'employee-1' }) },
+    departmentMembership: {
+      findUnique: async () => ({
+        employeeId: 'employee-1',
+        departmentId: 'IT',
+      }),
+    },
     serviceRequest: {
       findFirst: async ({
         where,
@@ -93,15 +102,16 @@ function createTestDatabase() {
         });
       },
     },
-    $transaction: async (callback: (transaction: typeof database) => Promise<unknown>) =>
-      callback(database),
+    $transaction: async (
+      callback: (transaction: PrismaService) => Promise<unknown>,
+    ) => callback(database as unknown as PrismaService),
   };
 
   return database as unknown as PrismaService;
 }
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: INestApplication;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -125,6 +135,7 @@ describe('AppController (e2e)', () => {
   it('accepts a valid Week 1 status transition', () => {
     return request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'Assigned' })
       .expect(200)
       .expect({ requestId: '1', status: 'Assigned' });
@@ -133,21 +144,25 @@ describe('AppController (e2e)', () => {
   it('accepts the complete valid request lifecycle', async () => {
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'Assigned' })
       .expect(200);
 
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'In Progress' })
       .expect(200);
 
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'Completed' })
       .expect(200);
 
     const response = await request(app.getHttpServer())
       .get('/requests/1')
+      .set('x-employee-id', 'employee-1')
       .expect(200);
 
     expect(response.body).toMatchObject({
@@ -163,11 +178,13 @@ describe('AppController (e2e)', () => {
   it('rejects an invalid Week 1 status transition without changing the request', async () => {
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'Completed' })
       .expect(400);
 
     await request(app.getHttpServer())
       .get('/requests/1')
+      .set('x-employee-id', 'employee-1')
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('Submitted');
@@ -178,23 +195,28 @@ describe('AppController (e2e)', () => {
   it('rejects moving a completed request back to in progress', async () => {
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'Assigned' })
       .expect(200);
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'In Progress' })
       .expect(200);
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'Completed' })
       .expect(200);
     await request(app.getHttpServer())
       .patch('/requests/1/status')
+      .set('x-employee-id', 'employee-1')
       .send({ status: 'In Progress' })
       .expect(400);
 
     await request(app.getHttpServer())
       .get('/requests/1')
+      .set('x-employee-id', 'employee-1')
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('Completed');

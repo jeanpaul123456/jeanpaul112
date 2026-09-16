@@ -7,11 +7,13 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.enableCors();
-  app.useStaticAssets(join(process.cwd(), 'public'), { prefix: '/app/' });
+  app.useStaticAssets(join(process.cwd(), '..', 'frontend', 'dist'), {
+    prefix: '/app/',
+  });
 
-  await app.listen(3000);
-  console.log('Service Hub is running on http://localhost:3000/app/');
+  const port = Number(process.env.PORT ?? 3000);
+  await app.listen(port, '127.0.0.1');
+  console.log(`Service Hub is running on http://localhost:${port}/app/`);
 }
 
 bootstrap();
