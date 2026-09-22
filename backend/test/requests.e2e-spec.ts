@@ -53,6 +53,120 @@ describe('Employee-to-department requests (SQLite)', () => {
     await app.init();
   });
 
+  it('reviews using real employee and department records without creating a request', async () => {
+    const count = await prisma.serviceRequest.count();
+    vi.stubEnv('REQUEST_REVIEW_MODE', 'openai');
+    vi.stubEnv('OPENAI_API_KEY', 'test-only');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          status: 'completed',
+          output: [
+            {
+              type: 'message',
+              content: [
+                {
+                  type: 'output_text',
+                  text: JSON.stringify({
+                    improvedTitle: 'Laptop problem',
+                    improvedDescription: 'My laptop screen stays black.',
+                    suggestedDepartmentSlug: 'it',
+                    suggestedPriority: 'Medium',
+                    explanation: 'Device issues belong to IT.',
+                    concerns: ['Is work blocked?'],
+                  }),
+                },
+              ],
+            },
+          ],
+        }),
+      })),
+    );
+    try {
+      await request(app.getHttpServer())
+        .post('/ai/review-request')
+        .set('x-employee-id', 'unknown')
+        .send({ ...body, priority: 'Medium' })
+        .expect(401);
+      expect(fetch).not.toHaveBeenCalled();
+      await request(app.getHttpServer())
+        .post('/ai/review-request')
+        .set('x-employee-id', 'employee')
+        .send({ ...body, priority: 'invalid' })
+        .expect(400);
+      expect(fetch).not.toHaveBeenCalled();
+      const result = await request(app.getHttpServer())
+        .post('/ai/review-request')
+        .set('x-employee-id', 'employee')
+        .send({ ...body, priority: 'Medium' })
+        .expect(201);
+      expect(result.body.suggestedDepartmentSlug).toBe('it');
+      expect(await prisma.serviceRequest.count()).toBe(count);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+  it('submits clear requests for staff acceptance but persists nothing when AI finds concerns', async () => {
+    vi.stubEnv('REQUEST_REVIEW_MODE', 'openai');
+    vi.stubEnv('OPENAI_API_KEY', 'test-only');
+    let concerns: string[] = ['Please clarify what is broken.'];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          status: 'completed',
+          output: [
+            {
+              type: 'message',
+              content: [
+                {
+                  type: 'output_text',
+                  text: JSON.stringify({
+                    improvedTitle: body.title,
+                    improvedDescription: body.description,
+                    suggestedDepartmentSlug: 'it',
+                    suggestedPriority: 'Medium',
+                    explanation: 'IT handles device issues.',
+                    concerns,
+                  }),
+                },
+              ],
+            },
+          ],
+        }),
+      })),
+    );
+    try {
+      const count = await prisma.serviceRequest.count();
+      await request(app.getHttpServer())
+        .post('/ai/submit-request')
+        .set('x-employee-id', 'employee')
+        .send({ ...body, priority: 'Medium' })
+        .expect(400);
+      expect(await prisma.serviceRequest.count()).toBe(count);
+      concerns = [];
+      const created = await request(app.getHttpServer())
+        .post('/ai/submit-request')
+        .set('x-employee-id', 'employee')
+        .send({ ...body, priority: 'Medium' })
+        .expect(201);
+      expect(created.body.status).toBe('Submitted');
+      const saved = await prisma.serviceRequest.findUnique({
+        where: { ticketNumber: created.body.ticketNumber },
+        include: { history: true },
+      });
+      expect(saved?.status).toBe('SUBMITTED');
+      expect(saved?.history).toHaveLength(1);
+      expect(saved?.history[0].toStatus).toBe('SUBMITTED');
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
   afterAll(async () => {
     await app?.close();
     await prisma?.$disconnect();

@@ -1,3 +1,5 @@
+> This document records the original product design. For the implemented request flow and AI extension, see [README](README.md), [the current API contract](docs/api-contract.md), and [Week 4 delivery](docs/week4-production-ai.md). The executable database schema is [backend/prisma/schema.prisma](backend/prisma/schema.prisma).
+
  Domain
 
 ## Important Entities

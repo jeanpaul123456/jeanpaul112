@@ -307,6 +307,7 @@ export class AppService {
           priority: priority as RequestPriority,
           creatorId: employee.id,
           departmentId: department.id,
+          status: DatabaseRequestStatus.SUBMITTED,
         },
       });
       await transaction.requestStatusHistory.create({

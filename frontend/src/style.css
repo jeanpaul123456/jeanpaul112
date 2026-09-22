@@ -977,3 +977,29 @@ textarea {
     left: 0;
   }
 }
+
+.ai-review {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.ai-review button {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: white;
+  color: #16324f;
+  cursor: pointer;
+}
+.ai-review button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.ai-suggestions {
+  overflow-wrap: anywhere;
+}
+.ai-suggestions li {
+  margin-bottom: 0.5rem;
+}

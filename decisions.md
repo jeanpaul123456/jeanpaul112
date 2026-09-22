@@ -78,3 +78,19 @@ If the number of users, requests, or performance requirements increases signific
 When more information becomes available about the number of users, request volume, performance, and scalability needs, this decision should be reviewed.
 
 If the centralized architecture is no longer sufficient, additional solutions such as caching, message queues, or separate services can be introduced based on actual system requirements.
+
+# ADR-002: Keep AI advisory during request intake
+
+## Decision
+
+Gemini reviews the draft when the employee sends it. The backend supplies the department catalog, validates the structured response, and returns concerns or corrections for the employee to review. A passing request is created as Submitted. Department staff must still accept it, start work and complete it.
+
+## Reason
+
+A clear request does not mean that a department has accepted responsibility or started working. AI should help with wording and routing while existing software rules and department staff keep control of the workflow.
+
+## Consequences
+
+Provider failures preserve the draft and do not create a request. Model mistakes can still cause unnecessary clarification. Local rule-based checking remains an explicit offline option; it is not represented as AI. There is no automatic provider fallback. The legacy manual submission API remains available.
+
+The implementation and remaining semantic evaluation work are described in [Week 4 delivery](docs/week4-production-ai.md).

@@ -1,5 +1,17 @@
 import { test, expect } from "@playwright/test";
 
+// Preserve the original manual-lifecycle regression through the legacy API.
+// Automatic AI submission is tested separately below and against SQLite.
+test.beforeEach(async ({ page, request }) => {
+  await page.route("**/ai/submit-request", async (route) => {
+    const response = await request.post("/requests", {
+      headers: { "x-employee-id": route.request().headers()["x-employee-id"] },
+      data: route.request().postDataJSON(),
+    });
+    await route.fulfill({ response });
+  });
+});
+
 async function choose(page, name) {
   await page
     .getByLabel("Demo employee", { exact: true })
@@ -86,7 +98,10 @@ test("employee submits, only receiving staff manages, and employee sees persiste
   await expect(
     page.getByRole("region", { name: "Notifications" }),
   ).toContainText("Information Technology completed your request.");
-  await page.screenshot({ path: 'test-results/completion-notification.png', fullPage: true });
+  await page.screenshot({
+    path: "test-results/completion-notification.png",
+    fullPage: true,
+  });
   await page
     .getByRole("region", { name: "Notifications" })
     .getByRole("button", { name: new RegExp(`^${title}`) })
@@ -127,10 +142,11 @@ test("expected network failure keeps the draft and allows a successful retry", a
   await choose(page, "Charbel Chouaifaty");
   const title = `Retry request ${Date.now()}`;
   await draft(page, title);
-  await page.route("**/requests", async (route) => {
+  const failSubmission = async (route) => {
     if (route.request().method() === "POST") await route.abort("failed");
     else await route.continue();
-  });
+  };
+  await page.route("**/ai/submit-request", failSubmission);
   await page.getByRole("button", { name: "Send request ↗" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "Cannot reach the service",
@@ -139,7 +155,7 @@ test("expected network failure keeps the draft and allows a successful retry", a
   await expect(
     page.getByLabel("Problem description", { exact: true }),
   ).toHaveValue("My screen stays black. Please help me restart my laptop.");
-  await page.unroute("**/requests");
+  await page.unroute("**/ai/submit-request", failSubmission);
   await page.getByRole("button", { name: "Send request ↗" }).click();
   await expect(page.getByRole("status")).toContainText(
     "sent to Information Technology",
@@ -161,4 +177,68 @@ test("simple interface shows named stages without counters or filter controls", 
   await expect(
     page.getByRole("button", { name: /Total requests/ }),
   ).toHaveCount(0);
+});
+
+test("automatic AI check shows concerns and preserves the draft on failure", async ({
+  page,
+}) => {
+  await page.goto("/app/");
+  await choose(page, "Charbel Chouaifaty");
+  await draft(page, "Laptop issue");
+  await expect(
+    page.getByRole("button", { name: "Review with AI" }),
+  ).toHaveCount(0);
+  const review = {
+    improvedTitle: "Laptop screen stays black",
+    improvedDescription: "My laptop screen stays black.",
+    suggestedDepartmentSlug: "it",
+    suggestedPriority: "Medium",
+    explanation: "Please clarify the contradictory details.",
+    concerns: ["Is the screen black or working?"],
+  };
+  await page.route("**/ai/submit-request", (route) =>
+    route.fulfill({
+      status: 400,
+      json: { message: "Please clarify your request before sending.", review },
+    }),
+  );
+  await page.getByRole("button", { name: "Send request ↗" }).click();
+  await expect(page.getByText(review.concerns[0])).toBeVisible();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    "Laptop issue",
+  );
+  await page.getByRole("button", { name: "Accept corrections" }).click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    review.improvedTitle,
+  );
+  await page.route("**/ai/submit-request", (route) =>
+    route.fulfill({
+      status: 502,
+      json: { message: "AI unavailable. Your draft is unchanged." },
+    }),
+  );
+  await page.getByRole("button", { name: "Send request ↗" }).click();
+  await expect(
+    page.getByText("AI unavailable. Your draft is unchanged."),
+  ).toBeVisible();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    review.improvedTitle,
+  );
+});
+
+test("free local submission needs no API key and awaits department acceptance", async ({
+  page,
+}) => {
+  await page.unroute("**/ai/submit-request");
+  await page.goto("/app/");
+  await choose(page, "Charbel Chouaifaty");
+  const title = `Free local laptop request ${Date.now()}`;
+  await draft(page, title);
+  await page.getByRole("button", { name: "Send request ↗" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "sent to Information Technology",
+  );
+  await expect(
+    page.getByRole("button", { name: new RegExp(`^${title}`) }),
+  ).toContainText("Submitted");
 });

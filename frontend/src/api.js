@@ -16,11 +16,14 @@ export async function api(path, employeeId = "", options = {}) {
     );
   }
   const data = await response.json().catch(() => null);
-  if (!response.ok)
-    throw new Error(
+  if (!response.ok) {
+    const error = new Error(
       data?.message ||
         "The service could not complete this request. Please try again.",
     );
+    error.review = data?.review;
+    throw error;
+  }
   if (!data)
     throw new Error(
       "The service returned an unexpected response. Please try again.",

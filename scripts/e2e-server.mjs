@@ -1,3 +1,4 @@
+process.env.REQUEST_REVIEW_MODE = "local";
 import { DatabaseSync } from "node:sqlite";
 import { mkdtempSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
@@ -11,6 +12,7 @@ database.exec(readFileSync(join(root, "backend/prisma/schema.sql"), "utf8"));
 database.close();
 process.env.DATABASE_URL = `file:${databasePath.replaceAll("\\", "/")}`;
 process.env.PORT = "3101";
+process.env.OPENAI_API_KEY = ""; // Browser tests never make paid AI calls.
 process.chdir(join(root, "backend"));
 const seed = spawnSync(
   process.execPath,
@@ -20,3 +22,4 @@ const seed = spawnSync(
 if (seed.status !== 0)
   throw new Error("Could not seed the isolated browser-test database.");
 await import("../backend/dist/main.js");
+

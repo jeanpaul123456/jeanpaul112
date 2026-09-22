@@ -1,4 +1,4 @@
-# Service Request API contract — v0.3
+# Service Request API contract
 
 Base URL: `http://127.0.0.1:3000`. Requests/responses use JSON. Demo identity is the `x-employee-id` header. Request endpoints require a known employee; absent/unknown identity returns `401`. The directory endpoint is public for the local demo selector.
 
@@ -105,3 +105,63 @@ The frontend displays the message and retains an unsent draft on a failed submis
 ```
 
 `PATCH /notifications/:ticketNumber/read` marks the employee's completion notification as read. Returns `200` with `{"ticketNumber":"REQ-1001","read":true}`. An unknown or other employee's notification returns `404`; missing/unknown identity returns `401`. Acknowledgement preserves the request's status-update timestamp and audit history. Read state survives reconnects and reloads.
+
+## GET /ai/config
+
+Public local-demo endpoint. Returns 200 with the configured mode, for example:
+
+```json
+{"mode":"gemini"}
+```
+
+No credentials are returned. The frontend uses this to explain how the draft will be checked.
+
+## POST /ai/review-request
+
+Requires a known employee in `x-employee-id`. Reviews a draft without creating a request or changing history.
+
+```json
+{"title":"Laptop will not start","description":"My laptop does not start even with its charger connected. I cannot access my work and need IT assistance.","departmentSlug":"it","priority":"High"}
+```
+
+Title and description must be nonblank strings, at most 160 and 5,000 characters. Priority is required and must be Low, Medium or High. A supplied department slug must match the database catalog; review alone allows an empty or omitted department.
+
+Response 201 contains `improvedTitle`, `improvedDescription`, `suggestedDepartmentSlug`, `suggestedPriority`, `explanation`, and `concerns`. Explanation is nonblank and at most 1,500 characters. Concerns contain at most five nonblank strings of at most 500 characters each. Suggested departments and priorities are checked against product-owned values. Local mode also returns `source: "local"`.
+
+Provider output is independently validated and displayed as text. The provider receives only draft fields and the database department catalog, not employee identity or request history.
+
+## POST /ai/submit-request
+
+This is the employee form's submission endpoint. It takes the same header and draft fields as review. A valid destination department is required to create the request.
+
+The backend checks the exact submitted draft. If there are concerns or the suggested department differs from the selected one, it returns 400:
+
+```json
+{"message":"Please clarify your request before sending.","review":{"improvedTitle":"Expense reimbursement","improvedDescription":"Please help with my unpaid travel expenses.","suggestedDepartmentSlug":"finance","suggestedPriority":"Medium","explanation":"The description concerns expenses rather than an IT issue.","concerns":["The title and description describe different problems."]}}
+```
+
+No request is created in that case. The employee may accept corrections or edit the draft; sending again checks the new draft.
+
+On success, response 201 is:
+
+```json
+{"ticketNumber":"REQ-1001","status":"Submitted"}
+```
+
+The original submitted wording, department and priority are persisted, with one submission history entry. Suggestions are never silently applied. AI does not accept or start work. Only receiving department staff can move the request through Submitted → Assigned (Accepted in the UI) → In Progress → Completed, or reject it under the existing rules.
+
+The legacy `POST /requests` endpoint remains available without an AI review. AI checking is therefore an intake feature, not a universal authorization boundary.
+
+### Review modes and failures
+
+| Mode | Behavior |
+| --- | --- |
+| `gemini` | Google Gemini structured review; requires GEMINI_API_KEY. Default model: gemini-3.5-flash-lite. |
+| `local` or unset | Offline completeness and placeholder rules. No external call and no semantic AI understanding. |
+| `openai` | Optional OpenAI integration using its separate credentials. |
+
+Unrecognized mode values currently use local checks. Provider failures do not trigger an automatic fallback.
+
+Errors: 401 unknown/missing employee; 400 invalid draft or clarification required; 503 missing credentials or Gemini quota exhaustion; 502 provider failure, timeout, blocked/incomplete response or invalid output. None of these review failures creates a request. The frontend retains the draft. Keys and raw provider errors are not returned.
+
+See [README](../README.md) for setup and [Week 4 delivery](week4-production-ai.md) for the evaluation plan and known limitations.

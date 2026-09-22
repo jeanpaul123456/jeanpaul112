@@ -78,7 +78,7 @@ Backend integration tests and browser tests use isolated temporary databases. Br
 
 ## Constraints and deferred work
 
-No external integrations, runtime AI, RAG, MCP, CI/CD, deployment, monitoring, or production infrastructure was added. Authentication remains a demo seam. There is no real-time push, attachment storage, email notification, SLA guarantee, or request reassignment. Lists refresh while the visible page is idle; detail dialogs have Refresh status. Failed requests are not retried automatically, and submission idempotency after an ambiguous network loss is not implemented.
+The original Week 3 slice did not include external integrations or runtime AI. An optional AI review extension was added afterward (see below). RAG, MCP, CI/CD, deployment, monitoring, and production infrastructure remain out of scope. Authentication remains a demo seam. There is no real-time push, attachment storage, email notification, SLA guarantee, or request reassignment. Lists refresh while the visible page is idle; detail dialogs have Refresh status. Failed requests are not retried automatically, and submission idempotency after an ambiguous network loss is not implemented.
 
 ## Delivery
 
@@ -96,3 +96,10 @@ The README contains clean installation, execution, demo identities, and all test
 ## Completion notification addition
 
 The requester now receives in-app completion notifications. They are derived from persisted completed requests, with database-backed read acknowledgement. The notification query is always scoped to the requester, including for department staff. Integration coverage verifies another employee cannot read or acknowledge the notification, persistence after reconnect, and unchanged request timestamps. The browser flow opens a completion notification and verifies read state after reload. Polling is every 15 seconds while visible; no external integration, email, or OS push service was added.
+
+
+## Current project extension
+
+This document records the Week 3 delivery and its dated verification results. The project now also includes automatic Gemini-assisted intake. The current implementation, live review evidence and remaining evaluation work are documented in [Week 4 delivery](week4-production-ai.md).
+
+Passing a review creates a Submitted request. Department staff accept it, start work and complete it. The original manual API remains available. See [README](../README.md) for current setup and test commands, and [the API contract](api-contract.md) for endpoint behavior.

@@ -1,8 +1,8 @@
-# Internal Operations Service Hub — v0.3
+# Internal Operations Service Hub
 
-A narrow employee-to-department request flow built with **React + Vite**, **NestJS**, and **Prisma + SQLite**, in the original repository.
+A company request portal built with **React + Vite**, **NestJS**, and **Prisma + SQLite**. Employees send problems to the right department and follow their progress. The Week 4 extension adds Gemini-assisted request intake to the same repository.
 
-Employees choose IT, Human Resources, or Finance, describe a problem, and select High, Medium, or Low priority. Receiving staff accepts and processes the request. The employee follows named stages and dated messages until completion. The interface intentionally has no numeric dashboard counters or search/filter toolbar.
+Employees choose IT, Human Resources, or Finance, describe a problem, and select High, Medium, or Low priority. Department staff accept and process the request. The employee follows named stages and dated messages until completion. The interface intentionally has no numeric dashboard counters or search/filter toolbar.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ npm run build
 npm start
 ```
 
-If you already have this folder, start with `npm ci` inside it. `setup` installs the backend and frontend from their lockfiles, generates Prisma, creates SQLite tables, and seeds demo people and departments. No `.env` file is required. Existing requests are preserved when setup is repeated.
+If you already have this folder, start with `npm ci` inside it. `setup` installs the backend and frontend from their lockfiles, generates Prisma, creates SQLite tables, and seeds demo people and departments. No `.env` file is required for offline checks. To use live Gemini, follow the AI setup section below. Existing requests are preserved when setup is repeated.
 
 Open **http://localhost:3000/app/**. Keep the terminal running. Stop it with Ctrl+C.
 
@@ -55,7 +55,7 @@ Open http://localhost:5173/app/. Vite proxies API requests to the backend on por
 ## Exercise the complete flow
 
 1. Choose **Charbel Chouaifaty** in Demo employee.
-2. Click **New request**. Enter a title, problem description, destination department, and priority. Send it to **Information Technology**.
+2. Click **New request**. For example, use the title “Laptop will not start” and describe what happened, what you tried, and how work is affected. Choose **Information Technology** and a priority, then click **Send request**. The configured checker runs automatically. If feedback appears, correct the draft and send again.
 3. Open the request in My requests: it is Submitted, and the remaining stages are Upcoming.
 4. Choose **Jean-Paul Chouaifaty**, open Department inbox, and open the request.
 5. Click Accept request, then Start work, then Mark completed. Include a useful message such as “Replaced the charger and verified startup.”
@@ -124,12 +124,15 @@ backend/test/                 Endpoint and real SQLite tests
 e2e/                          Full browser tests
 scripts/e2e-server.mjs        Isolated test database and server
 docs/api-contract.md          Request/response shapes and error behavior
-docs/week3-full-stack-delivery.md  Assignment evidence and scope
+docs/week3-full-stack-delivery.md  Week 3 evidence and scope
+docs/week4-production-ai.md       AI design, verification and evaluation plan
 ```
 
-See [the explicit API contract](docs/api-contract.md) and [Week 3 delivery](docs/week3-full-stack-delivery.md).
+See [the API contract](docs/api-contract.md), [Week 3 delivery](docs/week3-full-stack-delivery.md), and [Week 4 AI delivery](docs/week4-production-ai.md). The Week 4 document explains the AI boundaries, live test evidence, and evaluation work that remains.
 
-The main API routes are `/directory`, `POST /requests`, `GET /requests`, `GET /requests?department=it`, `GET /requests/:ticketNumber`, and `PATCH /requests/:ticketNumber/status`. Request endpoints require the demo employee header. Every request is persisted with its description, priority, destination, creator, status, and history.
+The employee form submits through `POST /ai/submit-request`. `POST /ai/review-request` reviews without creating a request, and `GET /ai/config` returns the selected review mode. The legacy `POST /requests` endpoint still supports manual intake without an AI review.
+
+The other main API routes are `/directory`, `POST /requests`, `GET /requests`, `GET /requests?department=it`, `GET /requests/:ticketNumber`, and `PATCH /requests/:ticketNumber/status`. Request endpoints require the demo employee header. Every request is persisted with its description, priority, destination, creator, status, and history.
 
 ## Expected failure and recovery
 
@@ -154,10 +157,63 @@ cd backend
 npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/schema.sql
 ```
 
-`prisma db push` is used for this local teaching slice; versioned production migrations and deployment are not part of v0.3.
+`prisma db push` is used for this local teaching slice; versioned production migrations and deployment are not implemented.
 
 ## Completion notifications
 
 Choose an employee to see their in-app Notifications button. Completed requests appear there with the title, department, and completion time. A dot and short message indicate unread updates. Open a notification to view the request and mark it read; read state is saved in SQLite. Only the requesting employee can read or acknowledge their notification. Existing completed requests also appear.
 
 Notifications refresh every 15 seconds while the page is visible, when the window regains focus, and when opening the panel. This is an in-app feature; it does not send email or operating-system push notifications.
+
+## AI-assisted request intake
+
+Gemini reviews the draft when the employee clicks **Send request**. It checks whether the title and description make sense together, flags missing or contradictory details, and suggests wording, department and priority.
+
+For example, a title about a broken laptop and a description about unpaid expenses should prompt clarification and a Finance suggestion. Suggestions appear below the description. **Accept corrections** changes the draft only; sending again triggers another check.
+
+The backend validates the result. If there are concerns or a department mismatch, it keeps the draft and creates no request. If the review passes, it saves the employee's submitted wording and selections as **Submitted**.
+
+**AI check → Submitted → Accepted → In Progress → Completed**
+
+AI does not accept work, verify facts, or resolve the problem. Department staff control acceptance, work and completion. The model can make mistakes, including asking for clarification when a request is already valid.
+
+### Set up Gemini
+
+1. Create a key in [Google AI Studio](https://aistudio.google.com/apikey).
+2. Use a project on the Free tier if you want to avoid paid usage. Free access has quotas, and the app cannot verify your billing tier.
+3. Copy `backend/.env.example` to `backend/.env` only if that file does not already exist. Otherwise edit the existing file.
+4. Set the following values:
+
+```env
+REQUEST_REVIEW_MODE=gemini
+GEMINI_API_KEY=your_private_key
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+Save the file, run `npm run build`, and restart with `npm start`. The backend reads the settings at startup. No OpenAI key is needed for Gemini.
+
+Keep the key private. `backend/.env` is ignored by Git and must not be committed. A new checkout needs its own local configuration.
+
+Gemini receives the draft fields and department catalog, not employee identity records or request history. Google's free-tier data policy allows content to be used to improve its products, so use fictional practice requests rather than confidential company information. See [Google's pricing and data-use information](https://ai.google.dev/gemini-api/docs/pricing).
+
+### Run without an AI provider
+
+Set `REQUEST_REVIEW_MODE=local` and restart. This is also the default when the setting is absent; a fresh checkout can run without a key.
+
+Local mode checks minimum title/description length and some obvious placeholder or repeated text. It keeps the selected department and priority. **These are programmed rules, not AI understanding.** No draft is sent to an external service.
+
+The earlier OpenAI integration is still available through `REQUEST_REVIEW_MODE=openai`, with `OPENAI_API_KEY` and `OPENAI_MODEL`. It requires separate API access and may incur charges. The app does not switch providers automatically. The form displays a disclosure for the mode returned by the backend.
+
+### When AI cannot review a request
+
+A missing key, exhausted quota, unavailable provider, timeout, or invalid model response leaves the draft in the form. No request is created and no paid fallback is attempted. Check the configuration or quota, then retry. To use offline checks instead, explicitly select local mode and restart.
+
+## Verification and Week 4 status
+
+The last full run passed **63 tests**: 20 unit tests, 38 API/database tests and 5 browser tests. Both builds passed after the change that keeps new requests in Submitted until staff accept them. A README edit alone does not rerun those tests.
+
+Automated AI tests use simulated provider responses. They check validation and failure handling without making paid calls. Browser coverage includes a real local-mode submission through the backend and isolated SQLite database; the manual lifecycle regression uses the legacy API.
+
+Two live Gemini reviews also succeeded on September 22, 2026: a clear laptop request returned no concerns, and a contradictory laptop/expenses request returned concerns and suggested Finance. Those review-only calls did not create requests.
+
+The AI feature is implemented, but the Week 4 evaluation requirement is **not finished yet**. [The Week 4 document](docs/week4-production-ai.md) defines eight evaluation cases. They still need an executable runner, a repeatable command, and recorded results. There is currently no `npm run eval:ai` command. `npm run check` verifies the software; it does not measure model quality across those cases.

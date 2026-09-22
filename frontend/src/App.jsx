@@ -1,3 +1,4 @@
+import AiReview from "./AiReview.jsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import Notifications from "./Notifications.jsx";
@@ -45,6 +46,8 @@ function Modal({ children, titleId, onClose, busy = false, id }) {
 }
 
 function NewRequest({ employee, departments, onClose, onCreated }) {
+  const formRef = useRef(null);
+  const [review, setReview] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event) {
@@ -65,7 +68,7 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
     setBusy(true);
     setError("");
     try {
-      const result = await api("/requests", employee.id, {
+      const result = await api("/ai/submit-request", employee.id, {
         method: "POST",
         body: JSON.stringify(body),
       });
@@ -75,6 +78,7 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
       );
     } catch (error) {
       setError(error.message);
+      setReview(error.review || null);
     } finally {
       setBusy(false);
     }
@@ -99,7 +103,7 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
       </div>
       <h2 id="form-heading">What do you need?</h2>
       <p id="sending-as">Sending as {employee.displayName}</p>
-      <form onSubmit={submit}>
+      <form ref={formRef} onSubmit={submit} onChange={() => setReview(null)}>
         <label htmlFor="title">Title</label>
         <input
           id="title"
@@ -121,6 +125,13 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
         <p id="description-help" className="hint">
           Include when the problem started and anything you have already tried.
         </p>
+        <AiReview
+          review={review}
+          onDismiss={() => setReview(null)}
+          departments={departments}
+          formRef={formRef}
+          disabled={busy}
+        />
         <label htmlFor="department">Send to department</label>
         <select id="department" name="department" required defaultValue="">
           <option value="">Choose the right department</option>
@@ -160,8 +171,9 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
           ))}
         </fieldset>
         <p role="alert">{error}</p>
+
         <button className="primary submit" disabled={busy}>
-          {busy ? "Sending request…" : "Send request ↗"}
+          {busy ? "Checking and sending…" : "Send request ↗"}
         </button>
       </form>
     </Modal>
