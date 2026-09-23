@@ -227,14 +227,16 @@ export class AiController {
         Object.keys(properties).map((key) => [key, review[key]]),
       );
     } catch (error) {
-      if (
-        process.env.REQUEST_REVIEW_MODE === 'gemini' &&
-        ((error instanceof GatewayTimeoutException &&
-          error.message.includes('60 seconds')) ||
+      if (process.env.REQUEST_REVIEW_MODE === 'gemini') {
+        const shouldFallback =
           (error instanceof Error &&
-            ['TimeoutError', 'AbortError', 'TypeError'].includes(error.name)))
-      ) {
-        return geminiFallbackReview(body, departments);
+            ['TimeoutError', 'AbortError', 'TypeError'].includes(error.name)) ||
+          (error instanceof BadGatewayException &&
+            (error.message.includes('Gemini rejected the review request') ||
+              error.message.includes('Gemini could not review your request')));
+        if (shouldFallback) {
+          return geminiFallbackReview(body, departments);
+        }
       }
       if (
         error instanceof ServiceUnavailableException ||

@@ -34,8 +34,8 @@ The App / Web communicates with the Backend, while the Backend is responsible fo
 
 ### Backend
 
-* Authenticates users.
-* Checks user permissions and roles.
+* Resolves the selected demo employee and checks membership-based permissions.
+* Validates identity and authorization for each protected operation.
 * Validates information received from the App / Web.
 * Creates and manages requests.
 * Determines the department responsible for a request.
@@ -63,7 +63,7 @@ The App / Web communicates with the Backend, while the Backend is responsible fo
 
 ## External Dependencies
 
-No external dependencies are currently required by the known project requirements.
+The core local application does not require an external service. Gemini is an optional external provider for AI-assisted intake; local mode works without it.
 
 An external identity provider, such as Keycloak, could be introduced later if the system requires centralized authentication or external identity management.
 

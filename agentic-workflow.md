@@ -8,9 +8,9 @@ Internal Operations Service Hub.
 The following documents were used:
 
 product-spec.md
-architecture.md
+archetechtre.md (the architecture document; the filename is retained for compatibility)
 data-model.md
-decisions/ADR-001.md
+decisions.md (ADR-001 is included in this file)
 
 The implementation focuses on one bounded backend behavior: Request
 Status Transition Management.
@@ -33,7 +33,7 @@ Non-goals
 
 Frontend
 Real database
-Authentication
+Production authentication
 Complete Role-Based Access Control
 Notifications
 Attachments

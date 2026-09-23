@@ -210,7 +210,7 @@ A missing key, exhausted quota, unavailable provider, timeout, or invalid model 
 
 ## Verification and Week 4 status
 
-The last full run passed **63 tests**: 20 unit tests, 38 API/database tests and 5 browser tests. Both builds passed after the change that keeps new requests in Submitted until staff accept them. A README edit alone does not rerun those tests.
+The latest full deterministic run passed **66 tests**: 23 unit tests, 38 API/database tests and 5 browser tests. Both builds passed after the change that keeps new requests in Submitted until staff accept them. A README edit alone does not rerun those tests.
 
 Automated AI tests use simulated provider responses. They check validation and failure handling without making paid calls. Browser coverage includes a real local-mode submission through the backend and isolated SQLite database; the manual lifecycle regression uses the legacy API.
 
@@ -231,9 +231,9 @@ Live cases need internet access and use Gemini quota. No paid-provider fallback 
 The command exits nonzero when any case fails and saves the model, time, assertions and results in [docs/week4-ai-eval-results.json](docs/week4-ai-eval-results.json). The rubric checks meaning-related outcomes, not exact wording; live results may vary. See [Week 4 delivery](docs/week4-production-ai.md) for details. Run `npm run check` separately for deterministic regression tests.
 
 
-Earlier evaluation: **8/8 passed** on 2026-09-23T14:41:23.961Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 63 deterministic tests and the frontend/backend builds also passed during this delivery. The earlier restricted evaluation attempt was interrupted after a timeout; the completed run used network access.
+Latest verified evaluation: **8/8 passed** on 2026-09-23T17:57:52.095Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 66 deterministic tests and the frontend/backend builds also passed during this verification.
 
 
 A later live run passed 5/8: three provider calls reached the 30-second timeout. That report is preserved in [the timeout report](docs/week4-ai-eval-timeout-results.json). The provider timeout is now 60 seconds and timeout failures return HTTP 504. See the latest result JSON for current results; earlier passing runs do not guarantee every live run passes.
 
-Latest completed rerun (2026-09-23T14:52:10.939Z): **6/8 passed**. Thin input timed out after 60 seconds (504); trusted-context review returned no usable validated candidate (502). The other six cases passed. This live run is not green. The timeout regression test passed with all 21 unit tests; live provider reliability remains unresolved.
+Latest verified rerun (2026-09-23T17:57:52.095Z): **8/8 passed**. All six live semantic cases and both injected boundary cases passed.

@@ -61,9 +61,9 @@ A department can receive and handle multiple requests, but each request is direc
 ### 3. Department → Department Staff
 
 **One Department can contain many Department Staff members.**
-**Each Department Staff member belongs to one Department.**
+**One Employee can belong to many Departments through Department Memberships.**
 
-Department staff members are employees who are assigned to a department and have the required permissions to manage its requests.
+Department staff members are employees who are assigned to one or more departments and have the required permissions to manage requests for those departments.
 
 **Important:**
 Department Staff and Department are not the same thing.
@@ -200,8 +200,6 @@ employee_id → requests
 
 department_id + status → requests
 
-status → requests
-
 request_id → request
 
 request_id → request history
@@ -213,7 +211,7 @@ These access patterns represent the main ways the application will search and re
 
 # Indexes Only When Justified
 
-An index can be added to `department_id` because the system will frequently need to retrieve requests belonging to a particular department, such as IT, Finance, or HR.
+The schema indexes `(department_id, status)` because the system frequently retrieves requests belonging to a department and filters them by lifecycle status, such as IT requests that are still active.
 
 For example:
 

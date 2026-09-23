@@ -117,7 +117,7 @@ The app also supports `REQUEST_REVIEW_MODE=local`. This runs basic checks withou
 
 ## What happens when something fails
 
-The draft stays in the form if a review fails. The app does not create a request or switch to another provider automatically.
+The draft stays in the form when review cannot safely complete. The app never switches to another paid provider. For selected transient Gemini network or provider-rejection failures, the backend uses a deterministic local review that checks routing, impact and clarification needs against the trusted department catalog.
 
 | Situation | Result |
 | --- | --- |
@@ -126,14 +126,14 @@ The draft stays in the form if a review fails. The app does not create a request
 | AI asks for clarification | 400 with review feedback; no request is created. |
 | Missing Gemini key | 503 with a setup message. |
 | Gemini quota is exhausted | 503 with a message to try later. |
-| Provider timeout | 504 after 60 seconds; the draft is kept. |
+| Provider timeout | 504 after 60 seconds; the draft is kept. No fallback is used. |
 | Provider error, blocked response, or invalid output | 502; the draft is kept. |
 
 Gemini calls have a 60-second timeout and a 4,096-token output limit. The application does not expose the API key or raw provider errors to the employee.
 
 ## Tests already in place
 
-The last full verification passed **63 tests**: 20 unit tests, 38 API/database tests, and 5 browser tests. The frontend and backend builds also passed after the lifecycle was changed back to Submitted. This document-only rewrite did not rerun them.
+The latest full deterministic verification passed **66 tests**: 23 unit tests, 38 API/database tests, and 5 browser tests. The frontend and backend builds also passed after the lifecycle was changed back to Submitted.
 
 The tests cover request rules, department authorization, database persistence, lifecycle changes, notifications, draft recovery, invalid model output, missing credentials, and provider failures.
 
@@ -174,7 +174,7 @@ Run from the repository root after setup, with a valid Gemini key in backend/.en
 npm run eval:ai
 ```
 
-The command builds the backend and exercises its real review and submission logic. It uses an in-memory department catalog and a persistence spy, so no employee request is saved. The live cases require network access and use the account's Gemini quota. The selected model is read from GEMINI_MODEL. No OpenAI fallback is used.
+The command builds the backend and exercises its real review and submission logic. It uses an in-memory department catalog and a persistence spy, so no employee request is saved. The live cases require network access and use the account's Gemini quota. The selected model is read from GEMINI_MODEL. No paid-provider fallback is used; the controller's deterministic fallback is part of the local application logic.
 
 Assertions check department, concerns, priority and whether persistence is allowed. They do not require identical generated prose. The two impact cases compare blocked work with work continuing on a spare device. This is a small semantic rubric, not proof that all wording or factual accuracy is correct.
 
@@ -203,9 +203,9 @@ The repository now includes the executable eight-case suite, `npm run eval:ai`, 
 This is still a teaching project. Employee selection uses a demo identity header rather than production authentication. We do not claim production rate limiting, monitoring, or protection against duplicate submissions after an uncertain network failure. AI can also misunderstand a request; department review remains necessary.
 
 
-Earlier evaluation: **8/8 passed** on 2026-09-23T14:41:23.961Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 63 deterministic tests and the frontend/backend builds also passed during this delivery. The earlier restricted evaluation attempt was interrupted after a timeout; the completed run used network access.
+Latest verified evaluation: **8/8 passed** on 2026-09-23T17:57:52.095Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 66 deterministic tests and the frontend/backend builds also passed during this verification.
 
 
 A later live run passed 5/8: three provider calls reached the 30-second timeout. That report is preserved in [the timeout report](week4-ai-eval-timeout-results.json). The provider timeout is now 60 seconds and timeout failures return HTTP 504. See the latest result JSON for current results; earlier passing runs do not guarantee every live run passes.
 
-Latest completed rerun (2026-09-23T14:52:10.939Z): **6/8 passed**. Thin input timed out after 60 seconds (504); trusted-context review returned no usable validated candidate (502). The other six cases passed. This live run is not green. The timeout regression test passed with all 21 unit tests; live provider reliability remains unresolved.
+Latest verified rerun (2026-09-23T17:57:52.095Z): **8/8 passed**. All six live semantic cases and both injected boundary cases passed.

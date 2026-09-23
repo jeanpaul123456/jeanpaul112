@@ -91,6 +91,6 @@ A clear request does not mean that a department has accepted responsibility or s
 
 ## Consequences
 
-Provider failures preserve the draft and do not create a request. Model mistakes can still cause unnecessary clarification. Local rule-based checking remains an explicit offline option; it is not represented as AI. There is no automatic provider fallback. The legacy manual submission API remains available.
+Provider failures preserve the draft and do not create a request unless the controller can safely apply its deterministic Gemini fallback. That fallback does not call another provider and cannot silently submit a request. Model mistakes can still cause unnecessary clarification. Local rule-based checking remains an explicit offline option; it is not represented as AI. The legacy manual submission API remains available.
 
 The implementation and remaining semantic evaluation work are described in [Week 4 delivery](docs/week4-production-ai.md).

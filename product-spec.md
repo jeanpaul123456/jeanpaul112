@@ -59,7 +59,8 @@ A company-internal platform designed to organize employee support requests and c
 ## Non-Functional Requirements
 
 ### Security
-- Users must authenticate before entering the system.
+- In the production product, users must authenticate before entering the system.
+- The current teaching implementation uses a selectable demo employee and the `x-employee-id` header instead of production sign-in.
 - Access to system functions must depend on the user's assigned role.
 
 ### Privacy
@@ -91,8 +92,8 @@ A company-internal platform designed to organize employee support requests and c
 ## Assumptions / Constraints / Unknowns
 
 ### Assumptions
-- Every employee has an individual account.
-- Users must log in before using the platform.
+- Every employee has an individual account in the target product.
+- Users must log in before using the target product; production authentication is outside the current teaching slice.
 - Employees may submit more than one request.
 - Requests are associated with a specific department.
 - Different roles have different access rights.

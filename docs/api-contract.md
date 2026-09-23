@@ -160,7 +160,7 @@ The legacy `POST /requests` endpoint remains available without an AI review. AI 
 | `local` or unset | Offline completeness and placeholder rules. No external call and no semantic AI understanding. |
 | `openai` | Optional OpenAI integration using its separate credentials. |
 
-Unrecognized mode values currently use local checks. Provider failures do not trigger an automatic fallback.
+Unrecognized mode values currently use local checks. In Gemini mode, low-level network failures and selected provider-rejection responses use the deterministic `gemini-fallback` review so the draft can still be checked against the trusted department catalog. Gemini timeouts, quota errors, blocked or incomplete responses, and invalid structured output remain errors and do not create a request.
 
 Errors: 401 unknown/missing employee; 400 invalid draft or clarification required; 503 missing credentials or Gemini quota exhaustion; 502 provider failure, timeout, blocked/incomplete response or invalid output. None of these review failures creates a request. The frontend retains the draft. Keys and raw provider errors are not returned.
 
