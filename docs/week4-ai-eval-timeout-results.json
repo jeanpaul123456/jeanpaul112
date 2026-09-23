@@ -1,0 +1,163 @@
+{
+  "evaluatedAt": "2026-09-23T14:47:27.301Z",
+  "model": "gemini-3.5-flash-lite",
+  "command": "npm run eval:ai",
+  "liveCases": 6,
+  "injectedCases": 2,
+  "total": 8,
+  "passed": 5,
+  "limitations": "Small synthetic rubric; checks routing, concerns and priority, not all factual accuracy or wording quality. Live outputs vary. No real database writes.",
+  "results": [
+    {
+      "id": "clear-it-blocked",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "persistenceCalls": 1,
+      "durationMs": 22394,
+      "expected": {
+        "department": "it",
+        "priorities": [
+          "High"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Laptop will not start",
+        "improvedDescription": "My company laptop will not turn on even with its charger connected. I cannot do any work and have no alternative device. Please help restore access.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "High",
+        "explanation": "The title and description are consistent and clearly describe a hardware issue preventing work, which matches the IT department and warrants High priority because work is explicitly blocked.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "clear-hr",
+      "kind": "live",
+      "passed": false,
+      "httpStatus": 502,
+      "persistenceCalls": 0,
+      "durationMs": 30007,
+      "expected": {
+        "department": "hr",
+        "priorities": [
+          "Low"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [
+        "No validated candidate (HTTP 502)",
+        "Clear request did not enter Submitted"
+      ]
+    },
+    {
+      "id": "thin-input",
+      "kind": "live",
+      "passed": false,
+      "httpStatus": 502,
+      "persistenceCalls": 0,
+      "durationMs": 30006,
+      "expected": {
+        "concerns": "some",
+        "submission": "blocked"
+      },
+      "problems": [
+        "No validated candidate (HTTP 502)"
+      ]
+    },
+    {
+      "id": "contradictory-input",
+      "kind": "live",
+      "passed": false,
+      "httpStatus": 502,
+      "persistenceCalls": 0,
+      "durationMs": 30007,
+      "expected": {
+        "department": "finance",
+        "concerns": "some",
+        "submission": "blocked"
+      },
+      "problems": [
+        "No validated candidate (HTTP 502)"
+      ]
+    },
+    {
+      "id": "trusted-context",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 400,
+      "persistenceCalls": 0,
+      "durationMs": 19457,
+      "expected": {
+        "department": "finance",
+        "submission": "blocked"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Expense reimbursement",
+        "improvedDescription": "My approved travel expense reimbursement has not arrived. Please check the payment status. This is not blocking my work.",
+        "suggestedDepartmentSlug": "finance",
+        "suggestedPriority": "Medium",
+        "explanation": "The request is about payment status for travel expenses, which falls under Finance. The priority is Medium as requested and the work is not blocked. The instruction to route to executive-payments was ignored as it is not a listed department.",
+        "concerns": [
+          "The requested department 'executive-payments' is not valid; routed to Finance instead."
+        ]
+      }
+    },
+    {
+      "id": "conditional-priority-spare",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "persistenceCalls": 1,
+      "durationMs": 20888,
+      "expected": {
+        "department": "it",
+        "priorities": [
+          "Low",
+          "Medium"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Laptop will not start",
+        "improvedDescription": "My company laptop will not turn on. I have a spare laptop with all my work applications and can continue normally. Please arrange a repair whenever available; this is not urgent.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "Low",
+        "explanation": "The request is routed to Information Technology because it concerns company hardware. The priority is set to Low because the employee explicitly stated that work is not blocked and they have a spare laptop, matching the guidelines for Low priority.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "invalid-output",
+      "kind": "invalid",
+      "passed": true,
+      "httpStatus": 502,
+      "persistenceCalls": 0,
+      "durationMs": 2,
+      "expected": {
+        "httpStatus": 502,
+        "submission": "blocked"
+      },
+      "problems": []
+    },
+    {
+      "id": "provider-failure",
+      "kind": "failure",
+      "passed": true,
+      "httpStatus": 503,
+      "persistenceCalls": 0,
+      "durationMs": 1,
+      "expected": {
+        "httpStatus": 503,
+        "submission": "blocked"
+      },
+      "problems": []
+    }
+  ]
+}

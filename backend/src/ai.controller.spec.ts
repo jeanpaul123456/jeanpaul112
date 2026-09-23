@@ -161,3 +161,72 @@ it('rejects malformed Gemini output', async () => {
     'could not review',
   );
 });
+
+it('reports a Gemini timeout distinctly and never persists a request', async () => {
+  vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
+  vi.stubEnv('GEMINI_API_KEY', 'gemini-test');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new DOMException('Timed out', 'TimeoutError');
+    }),
+  );
+  try {
+    await controller.submit('employee', draft);
+    throw new Error('Expected timeout');
+  } catch (error: any) {
+    expect(error.getStatus()).toBe(504);
+    expect(error.message).toContain('60 seconds');
+  }
+});
+
+it('uses a bounded minimal-thinking request for the supported Flash-Lite model', async () => {
+  vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
+  vi.stubEnv('GEMINI_API_KEY', 'test');
+  vi.stubEnv('GEMINI_MODEL', 'gemini-3.5-flash-lite');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [
+          {
+            finishReason: 'STOP',
+            content: { parts: [{ text: JSON.stringify(suggestion) }] },
+          },
+        ],
+      }),
+    })),
+  );
+  await controller.review('employee', draft);
+  const payload = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);
+  expect(payload.generationConfig.thinkingConfig.thinkingLevel).toBe('minimal');
+  expect(payload.generationConfig.maxOutputTokens).toBe(4096);
+});
+it('never accepts a truncated response even when its partial JSON looks valid', async () => {
+  vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
+  vi.stubEnv('GEMINI_API_KEY', 'test');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [
+          {
+            finishReason: 'MAX_TOKENS',
+            content: {
+              parts: [
+                { text: JSON.stringify({ ...suggestion, concerns: [] }) },
+              ],
+            },
+          },
+        ],
+      }),
+    })),
+  );
+  await expect(controller.submit('employee', draft)).rejects.toThrow(
+    'output limit',
+  );
+});

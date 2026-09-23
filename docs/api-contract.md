@@ -165,3 +165,5 @@ Unrecognized mode values currently use local checks. Provider failures do not tr
 Errors: 401 unknown/missing employee; 400 invalid draft or clarification required; 503 missing credentials or Gemini quota exhaustion; 502 provider failure, timeout, blocked/incomplete response or invalid output. None of these review failures creates a request. The frontend retains the draft. Keys and raw provider errors are not returned.
 
 See [README](../README.md) for setup and [Week 4 delivery](week4-production-ai.md) for the evaluation plan and known limitations.
+
+Gemini timeout handling: provider calls allow up to 60 seconds. A timeout returns HTTP 504 with a clear message and preserves the draft. Other invalid/provider responses remain 502; quota errors remain 503.

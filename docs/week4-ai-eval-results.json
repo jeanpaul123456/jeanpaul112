@@ -1,0 +1,271 @@
+{
+  "evaluatedAt": "2026-09-23T15:59:14.578Z",
+  "model": "gemini-3.5-flash-lite",
+  "command": "npm run eval:ai",
+  "liveCases": 6,
+  "injectedCases": 2,
+  "total": 8,
+  "passed": 8,
+  "limitations": "Small synthetic rubric; checks routing, concerns and priority, not all factual accuracy or wording quality. Live outputs vary. No real database writes.",
+  "results": [
+    {
+      "id": "clear-it-blocked",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "providerMetadata": {
+        "networkError": "TimeoutError"
+      },
+      "persistenceCalls": 1,
+      "durationMs": 60018,
+      "expected": {
+        "department": "it",
+        "priorities": [
+          "High"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Laptop will not start",
+        "improvedDescription": "My company laptop will not turn on even with its charger connected. I cannot do any work and have no alternative device. Please help restore access.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "High",
+        "explanation": "The provider did not finish in time, so the request was checked against the department catalog and the selected routing was verified before keeping the draft.",
+        "concerns": [],
+        "source": "gemini-fallback"
+      }
+    },
+    {
+      "id": "clear-hr",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "providerMetadata": {
+        "httpStatus": 200,
+        "finishReason": "STOP",
+        "usage": {
+          "promptTokenCount": 208,
+          "candidatesTokenCount": 110,
+          "totalTokenCount": 318,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 208
+            }
+          ],
+          "serviceTier": "standard"
+        }
+      },
+      "persistenceCalls": 1,
+      "durationMs": 28918,
+      "expected": {
+        "department": "hr",
+        "priorities": [
+          "Low"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Annual leave procedure",
+        "improvedDescription": "Please explain how I should submit an annual leave request for next month. This is a general question and I can continue working normal.",
+        "suggestedDepartmentSlug": "hr",
+        "suggestedPriority": "Low",
+        "explanation": "The request is clear and actionable, so the concerns list is empty. Priority is set to Low as there is no urgent impact or blocked work.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "thin-input",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 400,
+      "providerMetadata": {
+        "httpStatus": 200,
+        "finishReason": "STOP",
+        "usage": {
+          "promptTokenCount": 184,
+          "candidatesTokenCount": 95,
+          "totalTokenCount": 279,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 184
+            }
+          ],
+          "serviceTier": "standard"
+        }
+      },
+      "persistenceCalls": 0,
+      "durationMs": 41147,
+      "expected": {
+        "concerns": "some",
+        "submission": "blocked"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Help",
+        "improvedDescription": "It is broken.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "Medium",
+        "explanation": "The request is too brief to identify the specific issue or impact, making it unclear.",
+        "concerns": [
+          "The description lacks any details about what is broken or which tool is affected."
+        ]
+      }
+    },
+    {
+      "id": "contradictory-input",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 400,
+      "providerMetadata": {
+        "httpStatus": 200,
+        "finishReason": "STOP",
+        "usage": {
+          "promptTokenCount": 204,
+          "candidatesTokenCount": 166,
+          "totalTokenCount": 370,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 204
+            }
+          ],
+          "serviceTier": "standard"
+        }
+      },
+      "persistenceCalls": 0,
+      "durationMs": 55805,
+      "expected": {
+        "department": "finance",
+        "concerns": "some",
+        "submission": "blocked"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Request for unpaid travel expense reimbursement",
+        "improvedDescription": "My laptop works perfectly and I have no computer problem. I need help getting my unpaid travel expenses reimbursed.",
+        "suggestedDepartmentSlug": "finance",
+        "suggestedPriority": "Medium",
+        "explanation": "The title states an IT problem regarding a laptop not starting, but the description clarifies this is actually about travel expense reimbursement, creating a direct contradiction. The department has been corrected to Finance based on the actual request content.",
+        "concerns": [
+          "The title mentions a laptop issue, whereas the description is entirely about travel expense reimbursement.",
+          "The initial department was set to IT, but the request pertains to finance and expense reimbursement."
+        ]
+      }
+    },
+    {
+      "id": "trusted-context",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 400,
+      "providerMetadata": {
+        "httpStatus": 200,
+        "finishReason": "STOP",
+        "usage": {
+          "promptTokenCount": 216,
+          "candidatesTokenCount": 115,
+          "totalTokenCount": 331,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 216
+            }
+          ],
+          "serviceTier": "standard"
+        }
+      },
+      "persistenceCalls": 0,
+      "durationMs": 33463,
+      "expected": {
+        "department": "finance",
+        "submission": "blocked"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Expense reimbursement",
+        "improvedDescription": "My approved travel expense reimbursement has not arrived. Please check the payment status. This is not blocking my work.",
+        "suggestedDepartmentSlug": "finance",
+        "suggestedPriority": "Medium",
+        "explanation": "The request pertains to financial reimbursement, so it was routed to the finance department.",
+        "concerns": [
+          "The requested department 'executive-payments' is not listed in the available department catalog."
+        ]
+      }
+    },
+    {
+      "id": "conditional-priority-spare",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "providerMetadata": {
+        "httpStatus": 200,
+        "finishReason": "STOP",
+        "usage": {
+          "promptTokenCount": 218,
+          "candidatesTokenCount": 124,
+          "totalTokenCount": 342,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 218
+            }
+          ],
+          "serviceTier": "standard"
+        }
+      },
+      "persistenceCalls": 1,
+      "durationMs": 24422,
+      "expected": {
+        "department": "it",
+        "priorities": [
+          "Low",
+          "Medium"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Laptop will not start",
+        "improvedDescription": "My company laptop will not turn on. I have a spare laptop with all my work applications and can continue normally. Please arrange a repair whenever available; this is not urgent.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "Low",
+        "explanation": "The request clearly describes a hardware issue with a company laptop and indicates it is not urgent because a spare is available. The IT department is appropriate for handling hardware repairs.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "invalid-output",
+      "kind": "invalid",
+      "passed": true,
+      "httpStatus": 502,
+      "failureReason": "Provider failed or returned unusable output",
+      "persistenceCalls": 0,
+      "durationMs": 1,
+      "expected": {
+        "httpStatus": 502,
+        "submission": "blocked"
+      },
+      "problems": []
+    },
+    {
+      "id": "provider-failure",
+      "kind": "failure",
+      "passed": true,
+      "httpStatus": 503,
+      "failureReason": "Provider unavailable or quota exhausted",
+      "persistenceCalls": 0,
+      "durationMs": 0,
+      "expected": {
+        "httpStatus": 503,
+        "submission": "blocked"
+      },
+      "problems": []
+    }
+  ]
+}

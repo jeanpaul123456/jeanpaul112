@@ -216,4 +216,24 @@ Automated AI tests use simulated provider responses. They check validation and f
 
 Two live Gemini reviews also succeeded on September 22, 2026: a clear laptop request returned no concerns, and a contradictory laptop/expenses request returned concerns and suggested Finance. Those review-only calls did not create requests.
 
-The AI feature is implemented, but the Week 4 evaluation requirement is **not finished yet**. [The Week 4 document](docs/week4-production-ai.md) defines eight evaluation cases. They still need an executable runner, a repeatable command, and recorded results. There is currently no `npm run eval:ai` command. `npm run check` verifies the software; it does not measure model quality across those cases.
+## Run the AI evaluations
+
+With a valid Gemini key saved in backend/.env, run:
+
+```sh
+npm run eval:ai
+```
+
+This builds the backend and runs eight cases from [evals/request-intake.json](evals/request-intake.json): six live Gemini semantic reviews and two simulated failure cases. It checks clear, thin and contradictory input, trusted department context, priority based on work impact, invalid output and provider failure. The runner exercises real backend review/submission logic but replaces persistence, so it creates no actual requests.
+
+Live cases need internet access and use Gemini quota. No paid-provider fallback is attempted. Stay on the provider's free tier if avoiding charges. The suite fails visibly on unavailable quota or other live-call failures; it does not silently substitute mock answers.
+
+The command exits nonzero when any case fails and saves the model, time, assertions and results in [docs/week4-ai-eval-results.json](docs/week4-ai-eval-results.json). The rubric checks meaning-related outcomes, not exact wording; live results may vary. See [Week 4 delivery](docs/week4-production-ai.md) for details. Run `npm run check` separately for deterministic regression tests.
+
+
+Earlier evaluation: **8/8 passed** on 2026-09-23T14:41:23.961Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 63 deterministic tests and the frontend/backend builds also passed during this delivery. The earlier restricted evaluation attempt was interrupted after a timeout; the completed run used network access.
+
+
+A later live run passed 5/8: three provider calls reached the 30-second timeout. That report is preserved in [the timeout report](docs/week4-ai-eval-timeout-results.json). The provider timeout is now 60 seconds and timeout failures return HTTP 504. See the latest result JSON for current results; earlier passing runs do not guarantee every live run passes.
+
+Latest completed rerun (2026-09-23T14:52:10.939Z): **6/8 passed**. Thin input timed out after 60 seconds (504); trusted-context review returned no usable validated candidate (502). The other six cases passed. This live run is not green. The timeout regression test passed with all 21 unit tests; live provider reliability remains unresolved.

@@ -14,7 +14,8 @@
     "test": "npm --prefix backend test",
     "test:api": "npm --prefix backend run test:e2e",
     "test:e2e": "playwright test",
-    "check": "npm run build && npm test && npm run test:api && npm run test:e2e"
+    "check": "npm run build && npm test && npm run test:api && npm run test:e2e",
+    "eval:ai": "npm --prefix backend run build && node scripts/eval-ai.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0"

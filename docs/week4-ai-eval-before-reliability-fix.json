@@ -1,0 +1,173 @@
+{
+  "evaluatedAt": "2026-09-23T14:52:10.939Z",
+  "model": "gemini-3.5-flash-lite",
+  "command": "npm run eval:ai",
+  "liveCases": 6,
+  "injectedCases": 2,
+  "total": 8,
+  "passed": 6,
+  "limitations": "Small synthetic rubric; checks routing, concerns and priority, not all factual accuracy or wording quality. Live outputs vary. No real database writes.",
+  "results": [
+    {
+      "id": "clear-it-blocked",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "persistenceCalls": 1,
+      "durationMs": 22714,
+      "expected": {
+        "department": "it",
+        "priorities": [
+          "High"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Laptop will not start",
+        "improvedDescription": "My company laptop will not turn on even with its charger connected. I cannot do any work and have no alternative device. Please help restore access.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "High",
+        "explanation": "The request clearly describes a hardware issue preventing work, which falls under IT. The priority is High because the user's work is explicitly blocked with no alternative device available.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "clear-hr",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "persistenceCalls": 1,
+      "durationMs": 21053,
+      "expected": {
+        "department": "hr",
+        "priorities": [
+          "Low"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Annual leave procedure",
+        "improvedDescription": "Please explain how I should submit an annual leave request for next month. This is a general question and I can continue working normally.",
+        "suggestedDepartmentSlug": "hr",
+        "suggestedPriority": "Low",
+        "explanation": "The request is a clear inquiry about HR procedures regarding annual leave with no blocked work, fitting the Human Resources department and Low priority.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "thin-input",
+      "kind": "live",
+      "passed": false,
+      "httpStatus": 504,
+      "failureReason": "Provider timed out after 60 seconds",
+      "persistenceCalls": 0,
+      "durationMs": 60008,
+      "expected": {
+        "concerns": "some",
+        "submission": "blocked"
+      },
+      "problems": [
+        "No validated candidate (HTTP 504: Provider timed out after 60 seconds)"
+      ]
+    },
+    {
+      "id": "contradictory-input",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 400,
+      "persistenceCalls": 0,
+      "durationMs": 22009,
+      "expected": {
+        "department": "finance",
+        "concerns": "some",
+        "submission": "blocked"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Reimbursement for unpaid travel expenses",
+        "improvedDescription": "My laptop works perfectly and I have no computer problem. I need help getting my unpaid travel expenses reimbursed.",
+        "suggestedDepartmentSlug": "finance",
+        "suggestedPriority": "Medium",
+        "explanation": "The title indicates an IT issue regarding a laptop, but the description clearly states there is no computer problem and asks for travel expense reimbursement instead, which belongs to Finance. The department and title have been updated to match the actual request in the description without inventing new facts.",
+        "concerns": [
+          "The title states 'Laptop will not start' but the description states 'My laptop works perfectly and I have no computer problem', creating a direct contradiction.",
+          "The requested department was IT, but the issue described pertains to travel expense reimbursement, which should be handled by Finance."
+        ]
+      }
+    },
+    {
+      "id": "trusted-context",
+      "kind": "live",
+      "passed": false,
+      "httpStatus": 502,
+      "failureReason": "Provider failed or returned unusable output",
+      "persistenceCalls": 0,
+      "durationMs": 35338,
+      "expected": {
+        "department": "finance",
+        "submission": "blocked"
+      },
+      "problems": [
+        "No validated candidate (HTTP 502: Provider failed or returned unusable output)"
+      ]
+    },
+    {
+      "id": "conditional-priority-spare",
+      "kind": "live",
+      "passed": true,
+      "httpStatus": 201,
+      "persistenceCalls": 1,
+      "durationMs": 23068,
+      "expected": {
+        "department": "it",
+        "priorities": [
+          "Low",
+          "Medium"
+        ],
+        "concerns": "none",
+        "submission": "created"
+      },
+      "problems": [],
+      "candidate": {
+        "improvedTitle": "Laptop will not start",
+        "improvedDescription": "My company laptop will not turn on. I have a spare laptop with all my work applications and can continue normally. Please arrange a repair whenever available; this is not urgent.",
+        "suggestedDepartmentSlug": "it",
+        "suggestedPriority": "Low",
+        "explanation": "The request relates to hardware issues with a company laptop, which falls under Information Technology. The priority is set to Low because the user has a spare laptop and the work is not blocked.",
+        "concerns": []
+      }
+    },
+    {
+      "id": "invalid-output",
+      "kind": "invalid",
+      "passed": true,
+      "httpStatus": 502,
+      "failureReason": "Provider failed or returned unusable output",
+      "persistenceCalls": 0,
+      "durationMs": 1,
+      "expected": {
+        "httpStatus": 502,
+        "submission": "blocked"
+      },
+      "problems": []
+    },
+    {
+      "id": "provider-failure",
+      "kind": "failure",
+      "passed": true,
+      "httpStatus": 503,
+      "failureReason": "Provider unavailable or quota exhausted",
+      "persistenceCalls": 0,
+      "durationMs": 1,
+      "expected": {
+        "httpStatus": 503,
+        "submission": "blocked"
+      },
+      "problems": []
+    }
+  ]
+}

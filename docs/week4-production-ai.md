@@ -126,9 +126,10 @@ The draft stays in the form if a review fails. The app does not create a request
 | AI asks for clarification | 400 with review feedback; no request is created. |
 | Missing Gemini key | 503 with a setup message. |
 | Gemini quota is exhausted | 503 with a message to try later. |
-| Provider error, timeout, blocked response, or invalid output | 502; the draft is kept. |
+| Provider timeout | 504 after 60 seconds; the draft is kept. |
+| Provider error, blocked response, or invalid output | 502; the draft is kept. |
 
-Gemini calls have a 30-second timeout and a 2,200-token output limit. The application does not expose the API key or raw provider errors to the employee.
+Gemini calls have a 60-second timeout and a 4,096-token output limit. The application does not expose the API key or raw provider errors to the employee.
 
 ## Tests already in place
 
@@ -152,24 +153,32 @@ Automated provider tests use simulated responses, so they do not need credits. T
 
 These tests protect the software's behavior. They do not measure how well Gemini understands different requests.
 
-## AI evaluation plan
+## AI evaluations
 
-The assignment asks for five to eight representative AI evaluation cases and one repeatable command. We have defined the following eight cases. **They are a plan at this stage; a dedicated evaluation runner has not been added yet.**
+The eight evaluation cases are stored in `evals/request-intake.json` and run by `scripts/eval-ai.mjs`. Six call live Gemini with fictional drafts. Two inject invalid output and quota failure to check the backend boundaries without depending on a provider outage.
 
 | Case | Example | What we expect | Evidence so far |
 | --- | --- | --- | --- |
 | Clear IT request | Laptop will not start and work is blocked. | IT, High priority, no unnecessary clarification. | Live review passed. |
-| Clear HR request | Employee asks how to submit annual leave next month. | HR, with no invented dates or urgency. | Still needs a model evaluation. |
-| Too little information | “Help” / “It is broken.” | Ask what is broken and what help is needed. | Local rules are tested; Gemini evaluation still needed. |
+| Clear HR request | Employee asks how to submit annual leave next month. | HR, with no invented dates or urgency. | Included in the live suite. |
+| Too little information | “Help” / “It is broken.” | Ask what is broken and what help is needed. | Included in the live suite. |
 | Contradictory request | Laptop title, but description says it works and asks about expenses. | Flag the contradiction and suggest Finance. | Live review flagged both issues. |
-| Trusted department context | Payroll question sent to IT. | Suggest an existing Finance department; never invent one. | Output validation is tested; semantic case still needed. |
-| Priority depends on impact | Compare blocked work with the same issue when a spare device is available. | Priority should reflect the stated impact. | Still needs a model evaluation. |
+| Trusted department context | Payroll question sent to IT. | Suggest an existing Finance department; never invent one. | Live case includes an instruction to invent a department; only the trusted catalog is allowed. |
+| Priority depends on impact | Compare blocked work with the same issue when a spare device is available. | Priority should reflect the stated impact. | Included in the live suite. |
 | Invalid model output | Missing fields or a department that does not exist. | Reject the result and create no request. | Covered by simulated provider tests. |
 | Provider failure | Quota exhaustion or an unavailable provider. | Keep the draft and report the failure. | Covered by simulated provider tests. |
 
-The future runner should check these outcomes rather than expecting identical wording every time. It should record the model, date, case, result, and pass/fail outcome, and exit with a failure code when a case fails. All examples should use fictional information.
+Run from the repository root after setup, with a valid Gemini key in backend/.env:
 
-There is currently no `npm run eval:ai` command. `npm run check` runs deterministic tests; it is not a substitute for the assignment's AI evaluation command.
+```sh
+npm run eval:ai
+```
+
+The command builds the backend and exercises its real review and submission logic. It uses an in-memory department catalog and a persistence spy, so no employee request is saved. The live cases require network access and use the account's Gemini quota. The selected model is read from GEMINI_MODEL. No OpenAI fallback is used.
+
+Assertions check department, concerns, priority and whether persistence is allowed. They do not require identical generated prose. The two impact cases compare blocked work with work continuing on a spare device. This is a small semantic rubric, not proof that all wording or factual accuracy is correct.
+
+Results, model, timestamp, durations and observed candidates are saved to [week4-ai-eval-results.json](week4-ai-eval-results.json). A failed case produces a nonzero exit code. Missing credentials stop the run instead of claiming success. Provider or quota failures count as failures in live semantic cases. Reruns can produce different outputs.
 
 ## Files involved
 
@@ -185,10 +194,18 @@ There is currently no `npm run eval:ai` command. `npm run check` runs determinis
 | `backend/test/requests.e2e-spec.ts` | Tests the backend with a real test database. |
 | `e2e/service-request.spec.js` | Tests the employee flow in a browser. |
 
-## What remains before the Week 4 submission
+## Delivery status
 
 The AI-assisted intake feature is implemented in the same repository, the backend validates its results, and department staff keep control of the work. The README explains how to configure and run it.
 
-The remaining assignment work is to turn the eight evaluation cases into an executable suite, provide one repeatable evaluation command, run it, and record the results. The README should then include that command.
+The repository now includes the executable eight-case suite, `npm run eval:ai`, and a machine-readable result report. Check that report for the latest outcome; a failing live run must be investigated rather than described as a pass. README includes the evaluation command.
 
 This is still a teaching project. Employee selection uses a demo identity header rather than production authentication. We do not claim production rate limiting, monitoring, or protection against duplicate submissions after an uncertain network failure. AI can also misunderstand a request; department review remains necessary.
+
+
+Earlier evaluation: **8/8 passed** on 2026-09-23T14:41:23.961Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 63 deterministic tests and the frontend/backend builds also passed during this delivery. The earlier restricted evaluation attempt was interrupted after a timeout; the completed run used network access.
+
+
+A later live run passed 5/8: three provider calls reached the 30-second timeout. That report is preserved in [the timeout report](week4-ai-eval-timeout-results.json). The provider timeout is now 60 seconds and timeout failures return HTTP 504. See the latest result JSON for current results; earlier passing runs do not guarantee every live run passes.
+
+Latest completed rerun (2026-09-23T14:52:10.939Z): **6/8 passed**. Thin input timed out after 60 seconds (504); trusted-context review returned no usable validated candidate (502). The other six cases passed. This live run is not green. The timeout regression test passed with all 21 unit tests; live provider reliability remains unresolved.
