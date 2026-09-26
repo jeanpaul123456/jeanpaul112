@@ -4,6 +4,22 @@ A company request portal built with **React + Vite**, **NestJS**, and **Prisma +
 
 Employees choose IT, Human Resources, or Finance, describe a problem, and select High, Medium, or Low priority. Department staff accept and process the request. The employee follows named stages and dated messages until completion. The interface intentionally has no numeric dashboard counters or search/filter toolbar.
 
+## Final release handoff
+
+**Public app: deployment pending.** Localhost is not a valid final submission. Complete [deployment and recovery](docs/week5-release-operations.md) before declaring GO. Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
+
+The [submission guide](docs/final-submission.md) contains the four email recipients, exact subject format, required fields, push commands and defense checklist. Deadline: **September 30, 2026 at 12:00 PM Beirut time**.
+
+| Evidence | Where to look |
+|---|---|
+| Week 1: product and design | [Product](docs/product-spec.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [ADR-001](docs/decisions/ADR-001.md) |
+| Week 2: engineering ownership | [Workflow](docs/week2-agentic-workflow.md) |
+| Week 3: full stack | [Delivery](docs/week3-full-stack-delivery.md), [API contract](docs/api-contract.md) |
+| Week 4: runtime AI | [AI delivery](docs/week4-production-ai.md), [latest eval results](docs/week4-ai-eval-results.json) |
+| Week 5: release and operations | [Deployment, health, logs and recovery](docs/week5-release-operations.md) |
+
+After installing the test browser and configuring Gemini, run `npm run release:gate`. It checks the deterministic suite and live AI evaluations and writes a dated report. After deployment, run `npm run smoke -- https://YOUR-SERVICE.onrender.com`, then complete the documented browser journey and recovery checks.
+
 ## Prerequisites
 
 - Node.js **22.13+** on the Node 22 line, or a newer compatible Node version (verified with Node 26.8).
@@ -73,7 +89,7 @@ The UI calls the API's **Assigned** state **Accepted**. Staff may reject an acti
 
 **Authorization demonstration:** Jean-Paul can process an IT request; Elie cannot. The UI does not show other departments' inboxes, and the API also rejects a forged wrong-department operation with `403`. A sender can read their own request but cannot process it unless they belong to the receiving department.
 
-**Local demo identity:** the selector supplies `x-employee-id`. It is intentionally not production login: callers can switch that header. Membership and ownership checks are enforced for the selected identity. Company authentication is outside this slice; the server binds to the local machine.
+**Demo identity:** the selector supplies `x-employee-id`. It is intentionally not production login: callers can switch that header. Membership and ownership checks are enforced for the selected identity. Local startup binds to the local machine; hosting uses `HOST=0.0.0.0`. Use fictional data only in the public teaching demo.
 
 ## Automated tests
 
@@ -157,7 +173,7 @@ cd backend
 npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/schema.sql
 ```
 
-`prisma db push` is used for this local teaching slice; versioned production migrations and deployment are not implemented.
+`prisma db push` is only used locally. Remote startup uses the transactional baseline/checksum deployment script; see [Week 5](docs/week5-release-operations.md). Never point local setup commands at the remote database.
 
 ## Completion notifications
 
@@ -187,7 +203,7 @@ AI does not accept work, verify facts, or resolve the problem. Department staff 
 ```env
 REQUEST_REVIEW_MODE=gemini
 GEMINI_API_KEY=your_private_key
-GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 Save the file, run `npm run build`, and restart with `npm start`. The backend reads the settings at startup. No OpenAI key is needed for Gemini.
@@ -210,7 +226,7 @@ A missing key, exhausted quota, unavailable provider, timeout, or invalid model 
 
 ## Verification and Week 4 status
 
-The latest full deterministic run passed **66 tests**: 23 unit tests, 38 API/database tests and 5 browser tests. Both builds passed after the change that keeps new requests in Submitted until staff accept them. A README edit alone does not rerun those tests.
+Verification on September 26 passed **71 tests**: 25 unit tests, 41 API/database tests and 5 browser tests. Both builds passed. This includes release migration preservation/rollback and database readiness. Remote hosting still needs separate verification.
 
 Automated AI tests use simulated provider responses. They check validation and failure handling without making paid calls. Browser coverage includes a real local-mode submission through the backend and isolated SQLite database; the manual lifecycle regression uses the legacy API.
 
@@ -231,9 +247,4 @@ Live cases need internet access and use Gemini quota. No paid-provider fallback 
 The command exits nonzero when any case fails and saves the model, time, assertions and results in [docs/week4-ai-eval-results.json](docs/week4-ai-eval-results.json). The rubric checks meaning-related outcomes, not exact wording; live results may vary. See [Week 4 delivery](docs/week4-production-ai.md) for details. Run `npm run check` separately for deterministic regression tests.
 
 
-Latest verified evaluation: **8/8 passed** on 2026-09-23T17:57:52.095Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 66 deterministic tests and the frontend/backend builds also passed during this verification.
-
-
-A later live run passed 5/8: three provider calls reached the 30-second timeout. That report is preserved in [the timeout report](docs/week4-ai-eval-timeout-results.json). The provider timeout is now 60 seconds and timeout failures return HTTP 504. See the latest result JSON for current results; earlier passing runs do not guarantee every live run passes.
-
-Latest verified rerun (2026-09-23T17:57:52.095Z): **8/8 passed**. All six live semantic cases and both injected boundary cases passed.
+Read the latest dated AI evaluation JSON report for the current outcome. Historical timeout failures remain in the separate reports. The provider timeout is 60 seconds and failures return HTTP 504. A past pass does not guarantee future provider availability. See the Week 5 release document for the remote verification still required.

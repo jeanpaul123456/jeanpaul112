@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-09-26T13:08:28.436Z",
+  "commit": "609e5cab42e3ffe81d7d26fb4a3f374ea03aa4a1",
+  "workingTreeChanged": true,
+  "results": [
+    {
+      "command": "npm run check",
+      "passed": true
+    },
+    {
+      "command": "npm run eval:ai",
+      "passed": true
+    }
+  ],
+  "automatedGate": "PASS",
+  "finalGo": "PENDING: remote browser smoke, persistence after restart, failure/recovery and submitted SHA must be verified."
+}

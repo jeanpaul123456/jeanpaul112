@@ -20,64 +20,6 @@ const priorities = ['Low', 'Medium', 'High'];
 const bounded = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.trim().length > 0 && value.length <= max;
 
-function geminiFallbackReview(
-  body: any,
-  departments: { slug: string; name: string }[],
-) {
-  const text = `${body.title || ''} ${body.description || ''}`.toLowerCase();
-  const financeMatch =
-    /(travel.*expense|expense.*reimbursement|reimbursement|payment status|invoice|refund|payroll|approved.*expense)/i.test(
-      text,
-    ) ||
-    /(expense|reimbursement|payment|invoice|refund)/i.test(text);
-  const hrMatch =
-    /(annual leave|leave request|vacation|holiday|paternity|maternity|hr|benefits)/i.test(
-      text,
-    ) ||
-    /how do i.*(leave|benefit|request)/i.test(text);
-  const blockedWork =
-    /(cannot do any work|no alternative device|blocked|won't turn on|will not start|cannot access|unable to work|work is blocked|not able to work)/i.test(
-      text,
-    ) && !/(spare laptop|continue normally|can continue)/i.test(text);
-  const deptFromText = financeMatch
-    ? 'finance'
-    : hrMatch
-      ? 'hr'
-      : blockedWork || /laptop|device|screen|computer|printer|wifi|email|login/i.test(text)
-        ? 'it'
-        : body.departmentSlug || departments[0]?.slug || 'it';
-  const suggestedDepartmentSlug =
-    departments.some((d) => d.slug === deptFromText) ? deptFromText : 'it';
-  const concerns: string[] = [];
-  if (body.departmentSlug && body.departmentSlug !== suggestedDepartmentSlug) {
-    concerns.push(
-      'The request content matches a different department than the selected one.',
-    );
-  }
-  if (
-    !body.departmentSlug &&
-    !departments.some((d) => d.slug === suggestedDepartmentSlug)
-  ) {
-    concerns.push('Choose a valid department for this request.');
-  }
-  const suggestedPriority =
-    financeMatch || hrMatch
-      ? 'Medium'
-      : blockedWork
-        ? 'High'
-        : 'Low';
-  return {
-    improvedTitle: body.title || '',
-    improvedDescription: body.description || '',
-    suggestedDepartmentSlug,
-    suggestedPriority,
-    explanation:
-      'The provider did not finish in time, so the request was checked against the department catalog and the selected routing was verified before keeping the draft.',
-    concerns,
-    source: 'gemini-fallback',
-  };
-}
-
 @Controller('ai')
 export class AiController {
   constructor(
@@ -227,17 +169,6 @@ export class AiController {
         Object.keys(properties).map((key) => [key, review[key]]),
       );
     } catch (error) {
-      if (process.env.REQUEST_REVIEW_MODE === 'gemini') {
-        const shouldFallback =
-          (error instanceof Error &&
-            ['TimeoutError', 'AbortError', 'TypeError'].includes(error.name)) ||
-          (error instanceof BadGatewayException &&
-            (error.message.includes('Gemini rejected the review request') ||
-              error.message.includes('Gemini could not review your request')));
-        if (shouldFallback) {
-          return geminiFallbackReview(body, departments);
-        }
-      }
       if (
         error instanceof ServiceUnavailableException ||
         error instanceof GatewayTimeoutException ||

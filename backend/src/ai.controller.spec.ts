@@ -180,6 +180,13 @@ it('reports a Gemini timeout distinctly and never persists a request', async () 
   }
 });
 
+it('does not replace a failed Gemini call with keyword rules', async () => {
+  vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
+  vi.stubEnv('GEMINI_API_KEY', 'test');
+  vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('network unavailable'); }));
+  await expect(controller.review('employee', draft)).rejects.toMatchObject({ status: 502 });
+});
+
 it('uses a bounded minimal-thinking request for the supported Flash-Lite model', async () => {
   vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
   vi.stubEnv('GEMINI_API_KEY', 'test');

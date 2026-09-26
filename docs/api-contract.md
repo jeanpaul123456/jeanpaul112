@@ -1,6 +1,12 @@
 # Service Request API contract
 
-Base URL: `http://127.0.0.1:3000`. Requests/responses use JSON. Demo identity is the `x-employee-id` header. Request endpoints require a known employee; absent/unknown identity returns `401`. The directory endpoint is public for the local demo selector.
+Local base URL: `http://127.0.0.1:3000`; remote clients use the deployed service origin. Requests/responses use JSON. Demo identity is the `x-employee-id` header. Request endpoints require a known employee; absent/unknown identity returns `401`. The directory endpoint is public for the demo selector. This is a fictional-data demo, not password authentication.
+
+## Operational endpoints
+
+`GET /health` returns `{ "status": "ok", "release": "<deployed SHA or development>" }` while the process is running. `GET /health/ready` queries the department table and adds `database: "ok"` and `reviewMode`. Database failure returns HTTP 503 without connection details. Neither endpoint calls the AI provider; readiness does not guarantee provider availability. Both are public and expose no secrets.
+
+The running server returns an `X-Request-Id` header and logs the corresponding method, route template, status and duration. See [release operations](week5-release-operations.md) for monitoring and recovery.
 
 ## Types
 

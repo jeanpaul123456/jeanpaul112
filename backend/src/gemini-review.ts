@@ -14,7 +14,7 @@ export async function geminiReview(
       'Gemini is not configured. Add GEMINI_API_KEY to backend/.env and restart. Your draft is kept.',
     );
   try {
-    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {

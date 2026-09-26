@@ -53,6 +53,11 @@ describe('Employee-to-department requests (SQLite)', () => {
     await app.init();
   });
 
+  it('exposes readiness using the real database', async () => {
+    const response = await request(app.getHttpServer()).get('/health/ready').expect(200);
+    expect(response.body).toMatchObject({ status: 'ok', database: 'ok' });
+  });
+
   it('reviews using real employee and department records without creating a request', async () => {
     const count = await prisma.serviceRequest.count();
     vi.stubEnv('REQUEST_REVIEW_MODE', 'openai');

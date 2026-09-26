@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: internal-operations-service-hub
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm --prefix backend ci --include=dev && npm --prefix frontend ci --include=dev && npm run build
+    startCommand: npm --prefix backend run db:deploy && npm start
+    healthCheckPath: /health/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_ENV
+        value: production
+      - key: REQUEST_REVIEW_MODE
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_AUTH_TOKEN
+        sync: false

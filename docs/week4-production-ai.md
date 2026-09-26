@@ -90,14 +90,14 @@ There is an important limit here: an incorrect AI concern can prevent submission
 
 ## Setup and running the project
 
-The live integration uses **Google Gemini** with `gemini-3.5-flash-lite`. We changed from `gemini-2.5-flash-lite` after Google reported that the older model was unavailable to new accounts.
+The live integration uses **Google Gemini** with `gemini-3.1-flash-lite`. The final release selected this model after the September 26 comparison; the earlier 3.5 model had intermittent timeouts.
 
 Create a key in Google AI Studio and add these settings to the private `backend/.env` file:
 
 ```env
 REQUEST_REVIEW_MODE=gemini
 GEMINI_API_KEY=your_private_key
-GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 Never commit `.env`. The repository includes `.env.example` with placeholders.
@@ -133,7 +133,7 @@ Gemini calls have a 60-second timeout and a 4,096-token output limit. The applic
 
 ## Tests already in place
 
-The latest full deterministic verification passed **66 tests**: 23 unit tests, 38 API/database tests, and 5 browser tests. The frontend and backend builds also passed after the lifecycle was changed back to Submitted.
+The September 26 release gate passed **71 tests**: 25 unit tests, 41 API/database tests, and 5 browser tests. The frontend and backend builds also passed.
 
 The tests cover request rules, department authorization, database persistence, lifecycle changes, notifications, draft recovery, invalid model output, missing credentials, and provider failures.
 
@@ -196,16 +196,13 @@ Results, model, timestamp, durations and observed candidates are saved to [week4
 
 ## Delivery status
 
+The final release selects Gemini 3.1 Flash-Lite after the September 26 model comparison. Provider/network failures are no longer replaced by a keyword-based review: they return an error and leave the draft unsent. The evaluator now also requires an actual completed provider response for every live case. The latest result and the unsuccessful comparison are linked from [Week 5](week5-release-operations.md).
+
 The AI-assisted intake feature is implemented in the same repository, the backend validates its results, and department staff keep control of the work. The README explains how to configure and run it.
 
 The repository now includes the executable eight-case suite, `npm run eval:ai`, and a machine-readable result report. Check that report for the latest outcome; a failing live run must be investigated rather than described as a pass. README includes the evaluation command.
 
-This is still a teaching project. Employee selection uses a demo identity header rather than production authentication. We do not claim production rate limiting, monitoring, or protection against duplicate submissions after an uncertain network failure. AI can also misunderstand a request; department review remains necessary.
+This is still a teaching project. Employee selection uses a demo identity header rather than production authentication. The final release adds basic health checks and logs, but not production rate limiting, automated alerting, or protection against duplicate submissions after an uncertain network failure. AI can also misunderstand a request; department review remains necessary.
 
 
-Latest verified evaluation: **8/8 passed** on 2026-09-23T17:57:52.095Z, using gemini-3.5-flash-lite. Six cases used live Gemini and two injected failures. All 66 deterministic tests and the frontend/backend builds also passed during this verification.
-
-
-A later live run passed 5/8: three provider calls reached the 30-second timeout. That report is preserved in [the timeout report](week4-ai-eval-timeout-results.json). The provider timeout is now 60 seconds and timeout failures return HTTP 504. See the latest result JSON for current results; earlier passing runs do not guarantee every live run passes.
-
-Latest verified rerun (2026-09-23T17:57:52.095Z): **8/8 passed**. All six live semantic cases and both injected boundary cases passed.
+Read the latest dated AI evaluation JSON report for the current outcome. Historical timeout failures remain in the separate reports. The provider timeout is 60 seconds and failures return HTTP 504. A past pass does not guarantee future provider availability. See the Week 5 release document for the remote verification still required.

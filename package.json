@@ -1,6 +1,6 @@
 {
   "name": "internal-operations-service-hub",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -15,7 +15,9 @@
     "test:api": "npm --prefix backend run test:e2e",
     "test:e2e": "playwright test",
     "check": "npm run build && npm test && npm run test:api && npm run test:e2e",
-    "eval:ai": "npm --prefix backend run build && node scripts/eval-ai.mjs"
+    "eval:ai": "npm --prefix backend run build && node scripts/eval-ai.mjs",
+    "release:gate": "node scripts/release-gate.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0"

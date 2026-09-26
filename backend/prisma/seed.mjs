@@ -5,6 +5,7 @@ import { PrismaLibSql } from '@prisma/adapter-libsql';
 const prisma = new PrismaClient({
   adapter: new PrismaLibSql({
     url: process.env.DATABASE_URL ?? 'file:./dev.db',
+    authToken: process.env.DATABASE_AUTH_TOKEN,
   }),
 });
 try {

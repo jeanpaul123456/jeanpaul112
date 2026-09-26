@@ -1,36 +1,24 @@
 {
-  "evaluatedAt": "2026-09-26T13:08:28.405Z",
-  "model": "gemini-3.1-flash-lite",
+  "evaluatedAt": "2026-09-26T13:04:26.595Z",
+  "model": "gemini-3.5-flash-lite",
   "command": "npm run eval:ai",
   "liveCases": 6,
   "injectedCases": 2,
   "total": 8,
-  "passed": 8,
+  "passed": 6,
   "limitations": "Small synthetic rubric; checks routing, concerns and priority, not all factual accuracy or wording quality. Live outputs vary. No real database writes.",
   "results": [
     {
       "id": "clear-it-blocked",
       "kind": "live",
-      "passed": true,
-      "httpStatus": 201,
+      "passed": false,
+      "httpStatus": 504,
+      "failureReason": "Provider timed out after 60 seconds",
       "providerMetadata": {
-        "httpStatus": 200,
-        "finishReason": "STOP",
-        "usage": {
-          "promptTokenCount": 212,
-          "candidatesTokenCount": 109,
-          "totalTokenCount": 321,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 212
-            }
-          ],
-          "serviceTier": "standard"
-        }
+        "networkError": "TimeoutError"
       },
-      "persistenceCalls": 1,
-      "durationMs": 3157,
+      "persistenceCalls": 0,
+      "durationMs": 60012,
       "expected": {
         "department": "it",
         "priorities": [
@@ -39,15 +27,10 @@
         "concerns": "none",
         "submission": "created"
       },
-      "problems": [],
-      "candidate": {
-        "improvedTitle": "Company laptop failure to power on",
-        "improvedDescription": "My company laptop will not turn on despite being connected to the charger. I have no alternative device to perform my work duties and request immediate assistance to restore access.",
-        "suggestedDepartmentSlug": "it",
-        "suggestedPriority": "High",
-        "explanation": "The request clearly describes a hardware failure preventing all work, justifying a high priority and IT routing.",
-        "concerns": []
-      }
+      "problems": [
+        "No validated candidate (HTTP 504: Provider timed out after 60 seconds)",
+        "Clear request did not enter Submitted"
+      ]
     },
     {
       "id": "clear-hr",
@@ -59,8 +42,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 208,
-          "candidatesTokenCount": 105,
-          "totalTokenCount": 313,
+          "candidatesTokenCount": 97,
+          "totalTokenCount": 305,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -71,7 +54,7 @@
         }
       },
       "persistenceCalls": 1,
-      "durationMs": 1732,
+      "durationMs": 1253,
       "expected": {
         "department": "hr",
         "priorities": [
@@ -82,11 +65,11 @@
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Inquiry regarding annual leave submission procedure",
-        "improvedDescription": "Could you please provide the procedure for submitting an annual leave request for next month? This is a general inquiry and does not impact my current work duties.",
+        "improvedTitle": "Annual leave procedure",
+        "improvedDescription": "Please explain how I should submit an annual leave request for next month. This is a general question and I can continue working normally.",
         "suggestedDepartmentSlug": "hr",
         "suggestedPriority": "Low",
-        "explanation": "The request is clear and actionable, seeking guidance on administrative procedures for time off.",
+        "explanation": "The request is clear and actionable regarding HR procedures, and work is not blocked.",
         "concerns": []
       }
     },
@@ -100,8 +83,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 184,
-          "candidatesTokenCount": 133,
-          "totalTokenCount": 317,
+          "candidatesTokenCount": 72,
+          "totalTokenCount": 256,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -112,21 +95,20 @@
         }
       },
       "persistenceCalls": 0,
-      "durationMs": 2948,
+      "durationMs": 1286,
       "expected": {
         "concerns": "some",
         "submission": "blocked"
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Report of broken functionality",
+        "improvedTitle": "Help",
         "improvedDescription": "It is broken.",
         "suggestedDepartmentSlug": "it",
         "suggestedPriority": "Medium",
-        "explanation": "The request is too brief to diagnose the issue effectively. I have maintained the original intent while flagging the need for specific details.",
+        "explanation": "The request lacks necessary details about what is broken, but it is directed to IT as implied by technical trouble.",
         "concerns": [
-          "The description 'It is broken' does not specify which system, application, or process is affected.",
-          "There is no information regarding error messages, steps to reproduce, or the impact of the issue."
+          "The request is extremely thin and does not specify what item or system is broken."
         ]
       }
     },
@@ -140,8 +122,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 204,
-          "candidatesTokenCount": 115,
-          "totalTokenCount": 319,
+          "candidatesTokenCount": 139,
+          "totalTokenCount": 343,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -152,7 +134,7 @@
         }
       },
       "persistenceCalls": 0,
-      "durationMs": 3321,
+      "durationMs": 1109,
       "expected": {
         "department": "finance",
         "concerns": "some",
@@ -160,56 +142,34 @@
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Reimbursement request for unpaid travel expenses",
-        "improvedDescription": "I am requesting assistance with the reimbursement process for my travel expenses which remain unpaid.",
+        "improvedTitle": "Reimbursement for unpaid travel expenses",
+        "improvedDescription": "My laptop works perfectly and I have no computer problem. I need help getting my unpaid travel expenses reimbursed.",
         "suggestedDepartmentSlug": "finance",
         "suggestedPriority": "Medium",
-        "explanation": "The request is being redirected to the finance department as the issue concerns expense reimbursement rather than a technical laptop issue. The original title and description were contradictory.",
+        "explanation": "The title regarding laptop issues directly contradicts the description which is about travel expense reimbursement, and the department has been corrected to Finance accordingly.",
         "concerns": [
-          "The request title states the laptop will not start, but the description explicitly states the computer has no problems.",
-          "The requested service falls under Finance, not IT."
+          "The title states the laptop will not start, but the description says the laptop works perfectly and the actual request is for travel expense reimbursement."
         ]
       }
     },
     {
       "id": "trusted-context",
       "kind": "live",
-      "passed": true,
-      "httpStatus": 400,
+      "passed": false,
+      "httpStatus": 504,
+      "failureReason": "Provider timed out after 60 seconds",
       "providerMetadata": {
-        "httpStatus": 200,
-        "finishReason": "STOP",
-        "usage": {
-          "promptTokenCount": 216,
-          "candidatesTokenCount": 171,
-          "totalTokenCount": 387,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 216
-            }
-          ],
-          "serviceTier": "standard"
-        }
+        "networkError": "TimeoutError"
       },
       "persistenceCalls": 0,
-      "durationMs": 4032,
+      "durationMs": 60010,
       "expected": {
         "department": "finance",
         "submission": "blocked"
       },
-      "problems": [],
-      "candidate": {
-        "improvedTitle": "Inquiry regarding delayed travel expense reimbursement",
-        "improvedDescription": "I am requesting a status update on my approved travel expense reimbursement, which has not yet been received. Please verify the current payment status.",
-        "suggestedDepartmentSlug": "finance",
-        "suggestedPriority": "Low",
-        "explanation": "The request relates to payment processing, which falls under the Finance department's responsibilities. As the user noted the delay is not blocking their work, the priority is set to Low.",
-        "concerns": [
-          "The requested department 'executive-payments' does not exist in the provided directory; the request has been routed to Finance.",
-          "The original draft incorrectly suggested routing to the IT department for a financial transaction."
-        ]
-      }
+      "problems": [
+        "No validated candidate (HTTP 504: Provider timed out after 60 seconds)"
+      ]
     },
     {
       "id": "conditional-priority-spare",
@@ -221,8 +181,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 218,
-          "candidatesTokenCount": 117,
-          "totalTokenCount": 335,
+          "candidatesTokenCount": 115,
+          "totalTokenCount": 333,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -233,7 +193,7 @@
         }
       },
       "persistenceCalls": 1,
-      "durationMs": 2652,
+      "durationMs": 19297,
       "expected": {
         "department": "it",
         "priorities": [
@@ -245,11 +205,11 @@
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Repair request for non-functional company laptop",
+        "improvedTitle": "Laptop will not start",
         "improvedDescription": "My company laptop will not turn on. I have a spare laptop with all my work applications and can continue normally. Please arrange a repair whenever available; this is not urgent.",
         "suggestedDepartmentSlug": "it",
         "suggestedPriority": "Low",
-        "explanation": "The request is clear and provides necessary context regarding the device status and the employee's current ability to work.",
+        "explanation": "The request is clear, actionable, and properly categorized for IT with a low priority since the user has a working spare.",
         "concerns": []
       }
     },
@@ -260,7 +220,7 @@
       "httpStatus": 502,
       "failureReason": "Provider failed or returned unusable output",
       "persistenceCalls": 0,
-      "durationMs": 1,
+      "durationMs": 2,
       "expected": {
         "httpStatus": 502,
         "submission": "blocked"
@@ -274,7 +234,7 @@
       "httpStatus": 503,
       "failureReason": "Provider unavailable or quota exhausted",
       "persistenceCalls": 0,
-      "durationMs": 1,
+      "durationMs": 0,
       "expected": {
         "httpStatus": 503,
         "submission": "blocked"

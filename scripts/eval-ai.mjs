@@ -129,6 +129,8 @@ for (const item of cases) {
   if (expected.httpStatus && status !== expected.httpStatus)
     problems.push(`Expected HTTP ${expected.httpStatus}, got ${status}`);
   if (kind === "live") {
+    if (providerMetadata?.httpStatus !== 200 || providerMetadata?.finishReason !== 'STOP')
+      problems.push('Live case did not receive a completed provider response');
     if (!candidate)
       problems.push(
         `No validated candidate (HTTP ${status}${failureReason ? ": " + failureReason : ""})`,
@@ -177,7 +179,7 @@ for (const item of cases) {
 }
 const report = {
   evaluatedAt: new Date().toISOString(),
-  model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+  model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
   command: "npm run eval:ai",
   liveCases: 6,
   injectedCases: 2,

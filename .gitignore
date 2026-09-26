@@ -3,3 +3,9 @@ node_modules/
 frontend/dist/
 test-results/
 playwright-report/
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
