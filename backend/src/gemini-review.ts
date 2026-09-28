@@ -3,6 +3,29 @@ import {
   GatewayTimeoutException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+const retryDelayMs = (response: Response) => {
+  const retryAfter = response.headers?.get('retry-after');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    const requestedDelay = Number.isFinite(seconds)
+      ? seconds * 1000
+      : Date.parse(retryAfter) - Date.now();
+    if (Number.isFinite(requestedDelay) && requestedDelay >= 0)
+      return Math.min(requestedDelay, 10_000);
+  }
+  return 1000;
+};
+
+async function fetchGemini(url: string, options: RequestInit) {
+  let response = await fetch(url, options);
+  if (response.status === 503) {
+    await new Promise((resolve) => setTimeout(resolve, retryDelayMs(response)));
+    response = await fetch(url, options);
+  }
+  return response;
+}
+
 export async function geminiReview(
   draft: any,
   departments: { slug: string; name: string }[],
@@ -15,7 +38,7 @@ export async function geminiReview(
     );
   try {
     const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-    const response = await fetch(
+    const response = await fetchGemini(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
         method: 'POST',
@@ -71,6 +94,10 @@ export async function geminiReview(
     if (response.status === 429)
       throw new ServiceUnavailableException(
         'Gemini free-tier quota is currently unavailable or exhausted. Your draft is kept. Try again later.',
+      );
+    if (response.status === 503)
+      throw new ServiceUnavailableException(
+        'Gemini is temporarily unavailable. Your draft is kept. Please try again later.',
       );
     if (!response.ok)
       throw new BadGatewayException(

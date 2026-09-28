@@ -111,7 +111,7 @@ for (const item of cases) {
     return candidate;
   };
   try {
-    submission = await controller.submit("eval-employee", draft);
+    submission = await controller.submit("eval-employee", undefined, draft);
   } catch (error) {
     status = typeof error.getStatus === "function" ? error.getStatus() : 500;
     failureReason =
@@ -125,7 +125,12 @@ for (const item of cases) {
   } finally {
     globalThis.fetch = originalFetch;
   }
-  if (calls !== 1) problems.push(`Expected one provider call, got ${calls}`);
+  if (kind === "live") {
+    if (calls < 1 || calls > 2)
+      problems.push(`Expected 1–2 provider attempts, got ${calls}`);
+  } else if (calls !== 1) {
+    problems.push(`Expected one provider call, got ${calls}`);
+  }
   if (expected.httpStatus && status !== expected.httpStatus)
     problems.push(`Expected HTTP ${expected.httpStatus}, got ${status}`);
   if (kind === "live") {
@@ -167,6 +172,7 @@ for (const item of cases) {
     ...(failureReason ? { failureReason } : {}),
     ...(providerMetadata ? { providerMetadata } : {}),
     persistenceCalls: created,
+    providerAttempts: calls,
     durationMs: Date.now() - start,
     expected,
     problems,

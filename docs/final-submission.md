@@ -13,14 +13,14 @@ Deadline: **Wednesday, September 30, 2026, 12:00 PM Beirut time**. Submit early 
 | Stack | React, NestJS, Prisma; SQLite locally, libSQL configured for hosting |
 | AI | Gemini 3.1 Flash-Lite reviews clarity, consistency, department and priority |
 | Workflow | Submitted → Accepted → In Progress → Completed; staff can reject active requests with a reason |
-| Verification | September 26 release gate passed: both builds, 71 deterministic tests and 8 AI evaluation cases |
+| Verification | September 28 strict release gate passed: both builds, 74 deterministic tests (27 unit, 42 API/database, 5 browser), backend lint, and 8/8 AI evaluations |
 | Verified live app | https://jeanpaul112.onrender.com/app/ |
-| Observed deployed commit | `9572674c3872634ec2c4f529eab551cb395a20b5` during the September 28 recovery drill |
-| Final submission status | Live journey, restart persistence and controlled provider failure/recovery passed; use the final deployed documentation commit SHA when sending |
+| Last health-verified deployed commit | `1fcbd3d93090ec09d096f71c50105e8cd4862f77` on September 28; the final candidate is newer and not yet deployed |
+| Final submission status | Local release gate passed 8/8; final candidate still needs commit/push, deployment, migration verification, and live checks on its exact SHA |
 
 AI is advisory. The backend validates its output, and department staff control acceptance and completion. Provider failure keeps the draft unsent. The public app uses demo identities and fictional data.
 
-The confirmed student name is Jean-Paul Chouaifaty. The idempotent-submission change is pushed to `origin/master` but is not part of the observed deployed SHA above. Credential-safe local checks passed; the live-AI release gate, new forward migration, and changed application code still need release verification. **Do not submit the historical SHA as the final release.** First rotate the exposed AI key, run the release gate, deploy the pushed commit, verify `/health` matches `git rev-parse HEAD`, apply and verify the migration, and pass the live smoke and critical user journey. If any of those checks fail or remain undone, the current release is NO-GO.
+The confirmed student name is Jean-Paul Chouaifaty. The strict local release gate passed 8/8 on September 28, including the live AI evaluations. The current candidate has not been deployed; its additive forward migration and changed application code still need remote verification. **Do not submit the historical deployed SHA as the final release.** Commit and push the reviewed candidate, deploy that exact commit, verify `/health` matches its full SHA, confirm the migration, and pass live smoke and the critical user journey. If any of those checks fail or remain undone, the final release remains pending.
 
 ## Email draft
 

@@ -134,6 +134,49 @@ it('keeps the draft on Gemini quota exhaustion', async () => {
   );
   await expect(controller.review('employee', draft)).rejects.toThrow('quota');
 });
+it('reports Gemini upstream unavailability as 503 without persisting a request', async () => {
+  vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
+  vi.stubEnv('GEMINI_API_KEY', 'gemini-test');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: false, status: 503 })),
+  );
+  await expect(controller.review('employee', draft)).rejects.toMatchObject({
+    status: 503,
+    message: 'Gemini is temporarily unavailable. Your draft is kept. Please try again later.',
+  });
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+it('retries one Gemini 503 with backoff and accepts the successful response', async () => {
+  vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
+  vi.stubEnv('GEMINI_API_KEY', 'gemini-test');
+  vi.useFakeTimers();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, headers: { get: () => null } })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [
+            {
+              finishReason: 'STOP',
+              content: { parts: [{ text: JSON.stringify(suggestion) }] },
+            },
+          ],
+        }),
+      }),
+  );
+  try {
+    const result = controller.review('employee', draft);
+    await vi.runAllTimersAsync();
+    await expect(result).resolves.toEqual(suggestion);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
 it('requires a Gemini key instead of falling back to a paid provider', async () => {
   vi.stubEnv('REQUEST_REVIEW_MODE', 'gemini');
   vi.stubEnv('GEMINI_API_KEY', '');
