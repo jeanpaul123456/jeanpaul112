@@ -15,12 +15,12 @@ Deadline: **Wednesday, September 30, 2026, 12:00 PM Beirut time**. Submit early 
 | Workflow | Submitted → Accepted → In Progress → Completed; staff can reject active requests with a reason |
 | Verification | September 26 release gate passed: both builds, 71 deterministic tests and 8 AI evaluation cases |
 | Verified live app | https://jeanpaul112.onrender.com/app/ |
-| Observed deployed commit | `5c815c2246329c8dce34e0c12fc60e4e6a66d71d` on September 28 |
-| Final submission status | Live journey passed; server-restart persistence, recovery and final release freeze still pending |
+| Observed deployed commit | `9572674c3872634ec2c4f529eab551cb395a20b5` during the September 28 recovery drill |
+| Final submission status | Live journey, restart persistence and controlled provider failure/recovery passed; use the final deployed documentation commit SHA when sending |
 
 AI is advisory. The backend validates its output, and department staff control acceptance and completion. Provider failure keeps the draft unsent. The public app uses demo identities and fictional data.
 
-The confirmed student name is Jean-Paul Chouaifaty. The final SHA must match the version actually deployed after the remaining checks and documentation updates. The observed deployed SHA above is not yet a final submission sign-off.
+The confirmed student name is Jean-Paul Chouaifaty. The final SHA must match the deployed version after these evidence updates. Read it from `/health` and confirm it matches `git rev-parse HEAD` before sending. The recovery drill tested the application code at the SHA above; subsequent evidence edits do not change application code.
 
 ## Email draft
 

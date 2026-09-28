@@ -8,7 +8,7 @@ September 26 verification: 25 unit, 41 API/database and 5 browser tests passed a
 
 **Live app: [Service Hub](https://jeanpaul112.onrender.com/app/).** On September 28, `/health/ready` reported release `5c815c2246329c8dce34e0c12fc60e4e6a66d71d`, database `ok`, and review mode `gemini`. The browser journey passed using fictional ticket `REQ-1001`: live AI submission → IT acceptance → work started → completion → requester notification. An HR actor's attempt to accept the IT ticket returned 403. Completed state and notification read status survived a browser reload.
 
-**Final decision: NO-GO until server-restart persistence and controlled failure/recovery are verified.** A browser reload is not a server restart. These checks did not change hosting credentials or restart the service. See [the live verification record](live-verification-2026-09-28.md).
+**Decision: GO for the teaching-demo application verified on September 28.** The controlled provider failure, restored submission, staff workflow and persistence through service redeployments passed on application revision `9572674`. The final submission must use the deployed commit containing these evidence updates. See [the live verification record](live-verification-2026-09-28.md).
 
 ## Deploy the same repository
 
@@ -69,9 +69,9 @@ Use the provider dashboard's health and log stream during the defense. No indepe
 Run this during a planned demo window, with fictional data and no other users working:
 
 1. Record the deployed SHA and a successful `/health/ready` response. Create and complete an IT request from the browser; note its ticket number.
-2. Temporarily replace the hosting `GEMINI_API_KEY` with an invalid test value and restart/redeploy the same commit. Do not delete the actual key from your private source of truth.
+2. Record `GEMINI_MODEL`, temporarily set it to `release-drill-invalid-model`, and use Save and deploy for the same commit. Leave API keys unchanged.
 3. Send a new clear request in the browser. Confirm an error, the draft remains available, and no new ticket appears. Save a redacted screenshot and matching request ID/status from logs. Database health can remain green: it does not measure provider availability.
-4. Restore the valid secret and restart/redeploy the same commit. Retry from the browser. The request must be created as Submitted, then accepted, started and completed by the IT actor.
+4. Restore `GEMINI_MODEL=gemini-3.1-flash-lite`, verify the visible saved value, and redeploy the same commit. Retry from the browser. The request must be created as Submitted, then accepted, started and completed by the IT actor.
 5. Switch back to the requester and verify the completion notification. Reload and confirm the earlier ticket and history survived both restarts. Capture health, release identity and the final request state.
 6. Run the read-only smoke command again and record the result. Check the app from a separate browser session using only the README instructions.
 
@@ -82,12 +82,12 @@ If recovery fails, keep the decision NO-GO. Fix the cause and repeat the critica
 | Evidence | Current status |
 |---|---|
 | Public app URL | https://jeanpaul112.onrender.com/app/ — verified September 28 |
-| Final deployed and submitted SHA | Observed deployment: `5c815c2246329c8dce34e0c12fc60e4e6a66d71d`; final submission freeze pending remaining checks |
+| Final deployed and submitted SHA | Recovery-tested application: `9572674c3872634ec2c4f529eab551cb395a20b5`; match the final documentation commit to `/health` before submission |
 | Automated gate | Passed September 26: [dated report](release-gate-results.json), 71 deterministic tests + 8 AI cases; source changes were uncommitted during this run |
 | Remote browser journey + authorization rejection | Passed September 28, fictional ticket REQ-1001; unauthorized HR action returned 403 |
-| Record persistence across remote restart | Pending |
-| Controlled provider failure + successful recovery | Pending |
-| Post-recovery smoke | Pending |
-| Final GO, time and remaining risks | NO-GO until the above are verified |
+| Record persistence across remote restart | Passed: REQ-1001 and its history survived the initial upgrade and the controlled configuration redeployments |
+| Controlled provider failure + successful recovery | Passed: model unavailable → HTTP 502 with retained draft/no ticket → restored model → HTTP 201, REQ-1002 completed through UI |
+| Post-recovery smoke | Passed September 28 at 16:10:33 UTC: frontend, health, readiness and directory all HTTP 200 |
+| Final GO, time and remaining risks | GO for tested application after recovery on September 28; documented demo limitations below remain |
 
-Remaining known limitations: demo identity can be impersonated; free services have cold starts and quotas; AI judgments vary; there is no idempotency key for an ambiguous lost response after commit; the remote database path still needs real-target verification. These are explicit teaching-demo limits, not claims of enterprise readiness.
+Remaining known limitations: demo identity can be impersonated; free services have cold starts and quotas; AI judgments vary; there is no idempotency key for an ambiguous lost response after commit. These are explicit teaching-demo limits, not claims of enterprise readiness.

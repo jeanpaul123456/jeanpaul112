@@ -6,7 +6,7 @@ Employees choose IT, Human Resources, or Finance, describe a problem, and select
 
 ## Final release handoff
 
-**Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** Select Charbel Chouaifaty to submit a fictional request; select Jean-Paul Chouaifaty to handle IT requests. No password is needed for the demo. The September 28 live check verified AI submission, staff processing, completion notifications and wrong-department denial. Server-restart persistence and controlled failure/recovery remain pending; see [release operations](docs/week5-release-operations.md). Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
+**Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** Select Charbel Chouaifaty to submit a fictional request; select Jean-Paul Chouaifaty to handle IT requests. No password is needed for the demo. The September 28 live check verified AI submission, staff processing, completion notifications and wrong-department denial. Persistence through service redeployments and the controlled AI failure/recovery drill also passed; see [release operations](docs/week5-release-operations.md). Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
 
 The [submission guide](docs/final-submission.md) contains the four email recipients, exact subject format, required fields, push commands and defense checklist. Deadline: **September 30, 2026 at 12:00 PM Beirut time**.
 
