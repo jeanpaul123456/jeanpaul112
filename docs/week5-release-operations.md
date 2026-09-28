@@ -6,7 +6,9 @@ The application is prepared for a single Render web service with a separate Turs
 
 September 26 verification: 25 unit, 41 API/database and 5 browser tests passed across the checks for this change. Both builds passed. The first live evaluation with Gemini 3.5 Flash-Lite passed 6/8 because two calls timed out; [that report is retained](week5-ai-before-model-comparison.json). The same suite with Gemini 3.1 Flash-Lite passed 8/8, so the release configuration now uses 3.1 Flash-Lite. See [the latest report](week4-ai-eval-results.json). This comparison is evidence for the selected model, not a guarantee of future availability.
 
-**Final decision: NO-GO until remote deployment, recovery and browser smoke evidence are recorded below.** A passing local test suite is necessary, but it does not prove that the public application works. No public app URL has been supplied or verified yet.
+**Live app: [Service Hub](https://jeanpaul112.onrender.com/app/).** On September 28, `/health/ready` reported release `5c815c2246329c8dce34e0c12fc60e4e6a66d71d`, database `ok`, and review mode `gemini`. The browser journey passed using fictional ticket `REQ-1001`: live AI submission → IT acceptance → work started → completion → requester notification. An HR actor's attempt to accept the IT ticket returned 403. Completed state and notification read status survived a browser reload.
+
+**Final decision: NO-GO until server-restart persistence and controlled failure/recovery are verified.** A browser reload is not a server restart. These checks did not change hosting credentials or restart the service. See [the live verification record](live-verification-2026-09-28.md).
 
 ## Deploy the same repository
 
@@ -79,10 +81,10 @@ If recovery fails, keep the decision NO-GO. Fix the cause and repeat the critica
 
 | Evidence | Current status |
 |---|---|
-| Public app URL | Pending hosting account/deployment |
-| Final deployed and submitted SHA | Pending final commit |
+| Public app URL | https://jeanpaul112.onrender.com/app/ — verified September 28 |
+| Final deployed and submitted SHA | Observed deployment: `5c815c2246329c8dce34e0c12fc60e4e6a66d71d`; final submission freeze pending remaining checks |
 | Automated gate | Passed September 26: [dated report](release-gate-results.json), 71 deterministic tests + 8 AI cases; source changes were uncommitted during this run |
-| Remote browser journey + authorization rejection | Pending |
+| Remote browser journey + authorization rejection | Passed September 28, fictional ticket REQ-1001; unauthorized HR action returned 403 |
 | Record persistence across remote restart | Pending |
 | Controlled provider failure + successful recovery | Pending |
 | Post-recovery smoke | Pending |

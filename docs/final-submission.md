@@ -14,12 +14,13 @@ Deadline: **Wednesday, September 30, 2026, 12:00 PM Beirut time**. Submit early 
 | AI | Gemini 3.1 Flash-Lite reviews clarity, consistency, department and priority |
 | Workflow | Submitted → Accepted → In Progress → Completed; staff can reject active requests with a reason |
 | Verification | September 26 release gate passed: both builds, 71 deterministic tests and 8 AI evaluation cases |
-| Latest existing commit | `609e5cab42e3ffe81d7d26fb4a3f374ea03aa4a1` — this does **not** include the saved final-release changes |
-| Final submission status | Pending final commit, public deployment and remote recovery verification |
+| Verified live app | https://jeanpaul112.onrender.com/app/ |
+| Observed deployed commit | `5c815c2246329c8dce34e0c12fc60e4e6a66d71d` on September 28 |
+| Final submission status | Live journey passed; server-restart persistence, recovery and final release freeze still pending |
 
 AI is advisory. The backend validates its output, and department staff control acceptance and completion. Provider failure keeps the draft unsent. The public app uses demo identities and fictional data.
 
-The confirmed student name is Jean-Paul Chouaifaty. The final SHA must be taken after committing the release changes and must match the hosted version; do not copy the older SHA above into the email.
+The confirmed student name is Jean-Paul Chouaifaty. The final SHA must match the version actually deployed after the remaining checks and documentation updates. The observed deployed SHA above is not yet a final submission sign-off.
 
 ## Email draft
 
@@ -32,7 +33,7 @@ Send to all four:
 
 Subject: `AI Academy 2026 - Final Capstone Submission - Jean-Paul Chouaifaty`
 
-Your name is filled in. Complete the pending commit SHA and live app URL before sending:
+Your name and verified live URL are filled in. Complete the final commit SHA after release sign-off before sending:
 
 ```text
 Hello,
@@ -42,7 +43,7 @@ Please find my Internal Operations Service Hub final capstone submission.
 Full Name: Jean-Paul Chouaifaty
 Repository URL: https://github.com/jeanpaul123456/jeanpaul112
 Final Commit SHA: [full SHA from git rev-parse HEAD, matching the deployment]
-Live App URL: [public HTTPS URL ending in /app/]
+Live App URL: https://jeanpaul112.onrender.com/app/
 Demo Access / Roles: Open the app and use the Demo employee selector.
 Charbel Chouaifaty submits requests. Jean-Paul Chouaifaty handles IT,
 Elie Massoud handles HR, and Maria Boutros handles Finance.
