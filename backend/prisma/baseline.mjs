@@ -13,3 +13,19 @@ export async function applyBaseline(client, sql) {
     { sql: 'INSERT INTO HubMigration (id, checksum) VALUES (?, ?)', args: ['001-baseline', checksum] },
   ], 'write');
 }
+
+export async function applyForwardMigration(client, id, sql) {
+  const checksum = createHash('sha256').update(sql.replaceAll('\r\n', '\n')).digest('hex');
+  const previous = await client.execute({
+    sql: 'SELECT checksum FROM HubMigration WHERE id = ?',
+    args: [id],
+  });
+  if (previous.rows.length) {
+    if (previous.rows[0].checksum !== checksum) throw new Error(`Migration ${id} changed. Create a new migration instead.`);
+    return;
+  }
+  await client.batch([
+    ...sql.split(';').map((statement) => statement.trim()).filter(Boolean),
+    { sql: 'INSERT INTO HubMigration (id, checksum) VALUES (?, ?)', args: [id, checksum] },
+  ], 'write');
+}

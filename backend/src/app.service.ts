@@ -1,11 +1,13 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   RequestStatus as DatabaseRequestStatus,
   RequestPriority,
@@ -147,6 +149,59 @@ export class AppService {
     return 'Hello World!';
   }
 
+  private validateIdempotencyKey(key: string | undefined) {
+    if (key !== undefined && !/^[A-Za-z0-9._:-]{8,128}$/.test(key)) {
+      throw new BadRequestException('Idempotency-Key must be 8–128 safe characters.');
+    }
+  }
+
+  private async prepareRequest(
+    employeeId: string | undefined,
+    body: { title?: string; description?: string; departmentSlug?: string; priority?: unknown },
+  ) {
+    const employee = await this.requireEmployee(employeeId);
+    const priority = body?.priority === undefined ? RequestPriority.Medium : body.priority;
+    if (typeof priority !== 'string' || !Object.values(RequestPriority).includes(priority as RequestPriority)) {
+      throw new BadRequestException('Priority must be High, Medium, or Low.');
+    }
+    const title = typeof body?.title === 'string' ? body.title.trim() : '';
+    const description = typeof body?.description === 'string' ? body.description.trim() : '';
+    const departmentSlug = typeof body?.departmentSlug === 'string' ? body.departmentSlug.trim().toLowerCase() : '';
+    if (!title || !description || !departmentSlug) {
+      throw new BadRequestException('title, description, and departmentSlug are required.');
+    }
+    if (title.length > 160 || description.length > 5000) {
+      throw new BadRequestException('Use at most 160 characters for the title and 5,000 for the description.');
+    }
+    const department = await this.prisma.department.findUnique({ where: { slug: departmentSlug } });
+    if (!department) throw new BadRequestException('Unknown department.');
+    const normalizedPriority = priority as RequestPriority;
+    const payloadHash = createHash('sha256')
+      .update(JSON.stringify({ employeeId: employee.id, title, description, departmentId: department.id, priority: normalizedPriority }))
+      .digest('hex');
+    return { employee, title, description, department, priority: normalizedPriority, payloadHash };
+  }
+
+  private async findIdempotentRequest(key: string, employeeId: string, payloadHash: string) {
+    const previous = await this.prisma.serviceRequest.findUnique({ where: { idempotencyKey: key } });
+    if (!previous) return null;
+    if (previous.creatorId !== employeeId || previous.idempotencyPayloadHash !== payloadHash) {
+      throw new ConflictException('This Idempotency-Key was already used for a different request.');
+    }
+    return { ticketNumber: previous.ticketNumber, status: RequestStatus.Submitted };
+  }
+
+  async findSubmittedRequest(
+    employeeId: string | undefined,
+    body: { title?: string; description?: string; departmentSlug?: string; priority?: unknown },
+    idempotencyKey?: string,
+  ) {
+    this.validateIdempotencyKey(idempotencyKey);
+    if (!idempotencyKey) return null;
+    const prepared = await this.prepareRequest(employeeId, body);
+    return this.findIdempotentRequest(idempotencyKey, prepared.employee.id, prepared.payloadHash);
+  }
+
   async getNotifications(employeeId: string | undefined) {
     const employee = await this.requireEmployee(employeeId);
     const requests = await this.prisma.serviceRequest.findMany({
@@ -262,37 +317,26 @@ export class AppService {
       departmentSlug?: string;
       priority?: unknown;
     },
+    idempotencyKey?: string,
   ) {
-    const employee = await this.requireEmployee(employeeId);
-    const priority =
-      body?.priority === undefined ? RequestPriority.Medium : body.priority;
-    if (
-      typeof priority !== 'string' ||
-      !Object.values(RequestPriority).includes(priority as RequestPriority)
-    ) {
-      throw new BadRequestException('Priority must be High, Medium, or Low.');
+    this.validateIdempotencyKey(idempotencyKey);
+    const { employee, title, description, department, priority, payloadHash } = await this.prepareRequest(employeeId, body);
+    if (idempotencyKey) {
+      const previous = await this.findIdempotentRequest(idempotencyKey, employee.id, payloadHash);
+      if (previous) return previous;
     }
-    const title = typeof body?.title === 'string' ? body.title.trim() : '';
-    const description =
-      typeof body?.description === 'string' ? body.description.trim() : '';
-    const departmentSlug =
-      typeof body?.departmentSlug === 'string'
-        ? body.departmentSlug.trim().toLowerCase()
-        : '';
-    if (!title || !description || !departmentSlug) {
-      throw new BadRequestException(
-        'title, description, and departmentSlug are required.',
-      );
-    }
-    if (title.length > 160 || description.length > 5000)
-      throw new BadRequestException(
-        'Use at most 160 characters for the title and 5,000 for the description.',
-      );
-    const department = await this.prisma.department.findUnique({
-      where: { slug: departmentSlug },
-    });
-    if (!department) throw new BadRequestException('Unknown department.');
-    const request = await this.prisma.$transaction(async (transaction) => {
+    let request;
+    try {
+      request = await this.prisma.$transaction(async (transaction) => {
+      if (idempotencyKey) {
+        const previous = await transaction.serviceRequest.findUnique({ where: { idempotencyKey } });
+        if (previous) {
+          if (previous.creatorId !== employee.id || previous.idempotencyPayloadHash !== payloadHash) {
+            throw new ConflictException('This Idempotency-Key was already used for a different request.');
+          }
+          return previous;
+        }
+      }
       const counter = await transaction.requestCounter.upsert({
         where: { id: 'requests' },
         create: { id: 'requests', value: 1001 },
@@ -308,6 +352,8 @@ export class AppService {
           creatorId: employee.id,
           departmentId: department.id,
           status: DatabaseRequestStatus.SUBMITTED,
+          idempotencyKey: idempotencyKey ?? null,
+          idempotencyPayloadHash: idempotencyKey ? payloadHash : null,
         },
       });
       await transaction.requestStatusHistory.create({
@@ -319,7 +365,14 @@ export class AppService {
         },
       });
       return created;
-    });
+      });
+    } catch (error) {
+      if (idempotencyKey) {
+        const previous = await this.findIdempotentRequest(idempotencyKey, employee.id, payloadHash);
+        if (previous) return previous;
+      }
+      throw error;
+    }
     return {
       ticketNumber: request.ticketNumber,
       status: RequestStatus.Submitted,

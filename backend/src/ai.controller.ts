@@ -35,8 +35,13 @@ export class AiController {
   @Post('submit-request')
   async submit(
     @Headers('x-employee-id') employeeId: string | undefined,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body() body: any,
   ) {
+    const existing = idempotencyKey
+      ? await this.requests!.findSubmittedRequest(employeeId, body, idempotencyKey)
+      : null;
+    if (existing) return existing;
     const review = await this.review(employeeId, body);
     if (
       review.concerns.length ||
@@ -47,7 +52,7 @@ export class AiController {
         review,
       });
     }
-    return this.requests!.createRequest(employeeId, body);
+    return this.requests!.createRequest(employeeId, body, idempotencyKey);
   }
 
   @Post('review-request')

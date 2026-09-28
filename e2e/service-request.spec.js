@@ -5,7 +5,10 @@ import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page, request }) => {
   await page.route("**/ai/submit-request", async (route) => {
     const response = await request.post("/requests", {
-      headers: { "x-employee-id": route.request().headers()["x-employee-id"] },
+      headers: {
+        "x-employee-id": route.request().headers()["x-employee-id"],
+        "Idempotency-Key": route.request().headers()["idempotency-key"],
+      },
       data: route.request().postDataJSON(),
     });
     await route.fulfill({ response });
@@ -137,16 +140,27 @@ test("employee submits, only receiving staff manages, and employee sees persiste
 
 test("expected network failure keeps the draft and allows a successful retry", async ({
   page,
+  request,
 }) => {
   await page.goto("/app/");
   await choose(page, "Charbel Chouaifaty");
   const title = `Retry request ${Date.now()}`;
   await draft(page, title);
-  const failSubmission = async (route) => {
-    if (route.request().method() === "POST") await route.abort("failed");
-    else await route.continue();
+  let firstKey;
+  const failAfterCommit = async (route) => {
+    const submitted = route.request();
+    firstKey = submitted.headers()["idempotency-key"];
+    const saved = await request.post("/requests", {
+      headers: {
+        "x-employee-id": submitted.headers()["x-employee-id"],
+        "Idempotency-Key": firstKey,
+      },
+      data: submitted.postDataJSON(),
+    });
+    expect(saved.status()).toBe(201);
+    await route.abort("failed");
   };
-  await page.route("**/ai/submit-request", failSubmission);
+  await page.route("**/ai/submit-request", failAfterCommit);
   await page.getByRole("button", { name: "Send request ↗" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "Cannot reach the service",
@@ -155,7 +169,15 @@ test("expected network failure keeps the draft and allows a successful retry", a
   await expect(
     page.getByLabel("Problem description", { exact: true }),
   ).toHaveValue("My screen stays black. Please help me restart my laptop.");
-  await page.unroute("**/ai/submit-request", failSubmission);
+  await page.unroute("**/ai/submit-request", failAfterCommit);
+  let retryKey;
+  page.on("request", (retry) => {
+    if (
+      retry.url().endsWith("/ai/submit-request") &&
+      retry.method() === "POST"
+    )
+      retryKey = retry.headers()["idempotency-key"];
+  });
   await page.getByRole("button", { name: "Send request ↗" }).click();
   await expect(page.getByRole("status")).toContainText(
     "sent to Information Technology",
@@ -163,6 +185,11 @@ test("expected network failure keeps the draft and allows a successful retry", a
   await expect(
     page.getByRole("button", { name: new RegExp(`^${title}`) }),
   ).toHaveCount(1);
+  expect(retryKey).toBe(firstKey);
+  const requests = await request.get("/requests", {
+    headers: { "x-employee-id": "employee-4" },
+  });
+  expect((await requests.json()).filter((item) => item.title === title)).toHaveLength(1);
 });
 
 test("simple interface shows named stages without counters or filter controls", async ({

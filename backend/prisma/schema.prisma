@@ -64,6 +64,8 @@ model ServiceRequest {
   updatedAt    DateTime @updatedAt
   completedAt  DateTime?
   completionReadAt DateTime?
+  idempotencyKey String? @unique
+  idempotencyPayloadHash String?
   creator      Employee @relation(fields: [creatorId], references: [id])
   department   Department @relation(fields: [departmentId], references: [id])
   history      RequestStatusHistory[]

@@ -19,6 +19,7 @@ The running server returns an `X-Request-Id` header and logs the corresponding m
 ## POST /requests
 
 Header: `x-employee-id: employee-4`.
+Optional header: `Idempotency-Key: <unique-key>` (8–128 safe characters). Clients should reuse the same key when retrying an unchanged submission. The server returns the original ticket for an identical retry; reuse with a different employee or payload returns `409` and creates nothing.
 
 ```json
 {"title":"Laptop will not start","description":"The screen stays black when I press power.","departmentSlug":"it","priority":"High"}
@@ -32,7 +33,7 @@ Response `201` (ticket number varies):
 {"ticketNumber":"REQ-1001","status":"Submitted"}
 ```
 
-Errors: `400` invalid/missing fields, unknown priority or department; `401` missing/unknown employee. Failed validation creates no request or history entry.
+Errors: `400` invalid/missing fields, unknown priority or department or malformed key; `401` missing/unknown employee; `409` key reused for a different submission. Failed validation creates no request or history entry.
 
 ## GET /requests and GET /requests?department=it
 
@@ -138,7 +139,7 @@ Provider output is independently validated and displayed as text. The provider r
 
 ## POST /ai/submit-request
 
-This is the employee form's submission endpoint. It takes the same header and draft fields as review. A valid destination department is required to create the request.
+This is the employee form's submission endpoint. It takes the same header and draft fields as review. A valid destination department is required to create the request. It also accepts the optional `Idempotency-Key` header. The browser retains the key for the exact draft across retries, including when the original response is lost after the database commit. An identical replay returns the original ticket without another AI review; a changed payload with the same key returns `409`.
 
 The backend checks the exact submitted draft. If there are concerns or the suggested department differs from the selected one, it returns 400:
 
@@ -168,7 +169,7 @@ The legacy `POST /requests` endpoint remains available without an AI review. AI 
 
 Unrecognized mode values currently use local checks. In Gemini mode, low-level network failures and selected provider-rejection responses use the deterministic `gemini-fallback` review so the draft can still be checked against the trusted department catalog. Gemini timeouts, quota errors, blocked or incomplete responses, and invalid structured output remain errors and do not create a request.
 
-Errors: 401 unknown/missing employee; 400 invalid draft or clarification required; 503 missing credentials or Gemini quota exhaustion; 502 provider failure, timeout, blocked/incomplete response or invalid output. None of these review failures creates a request. The frontend retains the draft. Keys and raw provider errors are not returned.
+Errors: 401 unknown/missing employee; 400 invalid draft or clarification required; 409 idempotency key reused for different content; 503 missing credentials or Gemini quota exhaustion; 502 provider failure, timeout, blocked/incomplete response or invalid output. None of these review failures creates a request. The frontend retains the draft. Keys and raw provider errors are not returned.
 
 See [README](../README.md) for setup and [Week 4 delivery](week4-production-ai.md) for the evaluation plan and known limitations.
 

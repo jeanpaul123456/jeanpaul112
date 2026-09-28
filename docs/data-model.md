@@ -7,7 +7,7 @@ The executable source is [schema.prisma](../backend/prisma/schema.prisma). Both 
 | Employee | Demo identity, display name and unique email |
 | Department | Stable ID, unique slug and displayed name |
 | DepartmentMembership | Composite employee/department membership used for authorization |
-| ServiceRequest | Unique ticket number, title, description, priority, sender, receiving department, status and timestamps |
+| ServiceRequest | Unique ticket number, title, description, priority, sender, receiving department, status, timestamps and optional unique idempotency key/payload fingerprint |
 | RequestStatusHistory | Previous/new status, actor, time and optional note for each change |
 | RequestCounter | Transactional ticket-number sequence |
 
@@ -15,4 +15,4 @@ Each request belongs to one sender and one receiving department. Employees may h
 
 `completedAt` supports completion notifications; `completionReadAt` persists the sender's acknowledgment. Foreign keys protect relationships. Unique keys protect ticket numbers and department slugs. Indexes support the sender's list, department inbox and history lookup.
 
-The deployment script adds a separate `HubMigration` metadata table to record the baseline checksum. It is operational metadata, not a user-facing product entity. Request data is preserved by seeding and repeated deployments. See [release operations](week5-release-operations.md) for migration restrictions.
+The deployment script adds a separate `HubMigration` metadata table to record baseline and forward-migration checksums. It is operational metadata, not a user-facing product entity. Request data is preserved by seeding and repeated deployments. Migration `002-idempotency` adds nullable request-key fields and a unique index without changing the deployed baseline. See [release operations](week5-release-operations.md) for migration restrictions.

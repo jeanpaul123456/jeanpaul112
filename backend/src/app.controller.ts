@@ -72,6 +72,7 @@ export class AppController {
   @Post('requests')
   createRequest(
     @Headers('x-employee-id') employeeId: string | undefined,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body()
     body: {
       title?: string;
@@ -80,7 +81,7 @@ export class AppController {
       priority?: unknown;
     },
   ) {
-    return this.appService.createRequest(employeeId, body);
+    return this.appService.createRequest(employeeId, body, idempotencyKey);
   }
 
   @Post('requests/:id/claim')

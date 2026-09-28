@@ -8,6 +8,8 @@ Employees choose IT, Human Resources, or Finance, describe a problem, and select
 
 **Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** Select Charbel Chouaifaty to submit a fictional request; select Jean-Paul Chouaifaty to handle IT requests. No password is needed for the demo. The September 28 live check verified AI submission, staff processing, completion notifications and wrong-department denial. Persistence through service redeployments and the controlled AI failure/recovery drill also passed; see [release operations](docs/week5-release-operations.md). Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
 
+**Current working-tree release status: NOT YET DEPLOYED.** The idempotent-submission improvement passed local build, API/database, and browser checks, but its forward database migration must be deployed and the live critical journey reverified before claiming GO for this revision. The live evidence above describes the previously deployed revision.
+
 The [submission guide](docs/final-submission.md) contains the four email recipients, exact subject format, required fields, push commands and defense checklist. Deadline: **September 30, 2026 at 12:00 PM Beirut time**.
 
 | Evidence | Where to look |
@@ -152,7 +154,7 @@ The other main API routes are `/directory`, `POST /requests`, `GET /requests`, `
 
 ## Expected failure and recovery
 
-If sending fails before the backend receives it, the form keeps the entered text, displays a connection error, and enables retry. No successful request is invented in the UI. The browser test deliberately exercises this failure. A rare lost response after the server commits can be ambiguous: check My requests before resubmitting; idempotency keys are not implemented.
+If sending fails before the backend receives it, the form keeps the entered text and enables retry. Each unchanged draft reuses its idempotency key: if the server committed the request but its response was lost, retry returns the original ticket rather than creating a duplicate. Editing the draft creates a new key. Keys are persisted with requests; identical retries do not call the AI provider again. Reusing a key with different content is rejected with HTTP 409.
 
 ## Troubleshooting
 
@@ -165,12 +167,10 @@ If sending fails before the backend receives it, the form keeps the entered text
 
 ## Schema changes
 
-After changing `backend/prisma/schema.prisma`, run database setup and regenerate the isolated-test schema:
+After changing `backend/prisma/schema.prisma`, run local database setup. The remote `backend/prisma/schema.sql` is an immutable, checksum-protected baseline; do not regenerate or edit it after deployment. Add a new forward-only SQL migration under `backend/prisma/migrations/`, register it in `backend/prisma/deploy.mjs`, and apply it to API/browser test databases. Do not run local database commands against the remote service.
 
 ```sh
 npm run db:setup
-cd backend
-npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/schema.sql
 ```
 
 `prisma db push` is only used locally. Remote startup uses the transactional baseline/checksum deployment script; see [Week 5](docs/week5-release-operations.md). Never point local setup commands at the remote database.
@@ -226,7 +226,7 @@ A missing key, exhausted quota, unavailable provider, timeout, or invalid model 
 
 ## Verification and Week 4 status
 
-Verification on September 26 passed **71 tests**: 25 unit tests, 41 API/database tests and 5 browser tests. Both builds passed. This includes release migration preservation/rollback and database readiness. Remote hosting still needs separate verification.
+The historical September 26 release gate passed **71 tests**: 25 unit, 41 API/database and 5 browser tests, plus 8 live AI evaluation cases. On September 28, the current working tree passed `npm run check`: both builds, 25 unit tests, 42 API/database tests and 5 browser tests (72 deterministic tests total). New tests cover idempotent retry after commit, changed-payload conflict, migration checksum protection and browser recovery after a lost response. This local run does not apply the forward migration to the hosted database or constitute live release approval; run the release gate with a rotated, valid AI credential, then deploy and reverify the exact resulting commit.
 
 Automated AI tests use simulated provider responses. They check validation and failure handling without making paid calls. Browser coverage includes a real local-mode submission through the backend and isolated SQLite database; the manual lifecycle regression uses the legacy API.
 

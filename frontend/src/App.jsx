@@ -50,6 +50,19 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
   const [review, setReview] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  function keyForDraft(body) {
+    const storageKey = `service-hub-submit:${employee.id}`;
+    const fingerprint = JSON.stringify(body);
+    try {
+      const previous = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+      if (previous?.fingerprint === fingerprint && previous.key) return previous.key;
+      const key = crypto.randomUUID();
+      sessionStorage.setItem(storageKey, JSON.stringify({ fingerprint, key }));
+      return key;
+    } catch {
+      return crypto.randomUUID();
+    }
+  }
   async function submit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -67,11 +80,20 @@ function NewRequest({ employee, departments, onClose, onCreated }) {
     }
     setBusy(true);
     setError("");
+    const idempotencyKey = keyForDraft(body);
     try {
       const result = await api("/ai/submit-request", employee.id, {
         method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey },
         body: JSON.stringify(body),
       });
+      try {
+        const storageKey = `service-hub-submit:${employee.id}`;
+        const saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+        if (saved?.key === idempotencyKey) sessionStorage.removeItem(storageKey);
+      } catch {
+        // Session storage is optional; the request already succeeded.
+      }
       onCreated(
         result,
         departments.find((item) => item.slug === body.departmentSlug).name,

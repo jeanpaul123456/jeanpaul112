@@ -9,6 +9,9 @@ const directory = mkdtempSync(join(root, ".tmp", "browser-test-"));
 const databasePath = join(directory, "test.db");
 const database = new DatabaseSync(databasePath);
 database.exec(readFileSync(join(root, "backend/prisma/schema.sql"), "utf8"));
+database.exec(
+  readFileSync(join(root, "backend/prisma/migrations/002-idempotency.sql"), "utf8"),
+);
 database.close();
 process.env.DATABASE_URL = `file:${databasePath.replaceAll("\\", "/")}`;
 process.env.PORT = "3101";

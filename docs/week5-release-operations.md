@@ -2,6 +2,10 @@
 
 ## Release status
 
+### Current working-tree delta — pending deployment
+
+The September 28 local change adds request-submission idempotency and forward migration `002-idempotency`. `npm run check` passed locally with 25 unit, 42 API/database and 5 browser tests, and both builds passed. A read-only smoke at 17:01:55 UTC returned HTTP 200 for `/app/`, `/health`, `/health/ready` and `/directory`; `/health` reported release `528c94c086ddd0398fc6f6de4f9e3b0ab4a6e84c`, matching local `HEAD`. The working-tree changes are not in that commit, so this proves only that the previous deployment is reachable—not that the idempotency code or migration is live. **The current working-tree revision is NO-GO for final submission until it is committed, deployed, the migration is verified, and the live smoke test plus critical browser journey pass on that exact SHA.** Run the release gate after rotating the exposed AI key; local tests do not prove the remote release.
+
 The application is prepared for a single Render web service with a separate Turso/libSQL database. React is served by NestJS at `/app/`, so the browser and API share one origin. Local development still uses SQLite.
 
 September 26 verification: 25 unit, 41 API/database and 5 browser tests passed across the checks for this change. Both builds passed. The first live evaluation with Gemini 3.5 Flash-Lite passed 6/8 because two calls timed out; [that report is retained](week5-ai-before-model-comparison.json). The same suite with Gemini 3.1 Flash-Lite passed 8/8, so the release configuration now uses 3.1 Flash-Lite. See [the latest report](week4-ai-eval-results.json). This comparison is evidence for the selected model, not a guarantee of future availability.
@@ -19,7 +23,7 @@ September 26 verification: 25 unit, 41 API/database and 5 browser tests passed a
 5. Open the Render service URL followed by `/app/`. The database must be remote: a SQLite file on the free web service is temporary and is not an acceptable persistence target.
 6. Record the service URL and commit below. Keep automatic deploys disabled after choosing the submitted release.
 
-`npm --prefix backend run db:deploy` requires a remote libSQL URL and token. It applies `backend/prisma/schema.sql` in a transaction and records its checksum. Subsequent starts verify the checksum and preserve records. Changing this baseline after deployment is rejected; future schema changes need a separate migration. Do not use `db:setup` or `prisma db push` against the remote database.
+`npm --prefix backend run db:deploy` requires a remote libSQL URL and token. It applies `backend/prisma/schema.sql` in a transaction and records its checksum, then applies each separately checksummed forward migration. Subsequent starts verify those checksums and preserve records. Changing the baseline or an applied migration is rejected; create a new migration instead. Do not use `db:setup` or `prisma db push` against the remote database.
 
 The free service can sleep when idle; allow for a cold start before the defense. Free hosting and AI quotas can change. Review [Render's free-service limits](https://render.com/docs/free) and the selected database plan before deployment. No paid plan is required by the assignment.
 
@@ -90,4 +94,4 @@ If recovery fails, keep the decision NO-GO. Fix the cause and repeat the critica
 | Post-recovery smoke | Passed September 28 at 16:10:33 UTC: frontend, health, readiness and directory all HTTP 200 |
 | Final GO, time and remaining risks | GO for tested application after recovery on September 28; documented demo limitations below remain |
 
-Remaining known limitations: demo identity can be impersonated; free services have cold starts and quotas; AI judgments vary; there is no idempotency key for an ambiguous lost response after commit. These are explicit teaching-demo limits, not claims of enterprise readiness.
+Remaining known limitations: demo identity can be impersonated; free services have cold starts and quotas; AI judgments vary. Submission retries are idempotent when the client reuses its key; older clients that omit the optional key do not get that guarantee. These are explicit teaching-demo limits, not claims of enterprise readiness.

@@ -172,7 +172,7 @@ it('reports a Gemini timeout distinctly and never persists a request', async () 
     }),
   );
   try {
-    await controller.submit('employee', draft);
+    await controller.submit('employee', undefined, draft);
     throw new Error('Expected timeout');
   } catch (error: any) {
     expect(error.getStatus()).toBe(504);
@@ -233,7 +233,7 @@ it('never accepts a truncated response even when its partial JSON looks valid', 
       }),
     })),
   );
-  await expect(controller.submit('employee', draft)).rejects.toThrow(
+  await expect(controller.submit('employee', undefined, draft)).rejects.toThrow(
     'output limit',
   );
 });

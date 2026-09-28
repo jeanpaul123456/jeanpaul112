@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { readFileSync } from 'node:fs';
-import { applyBaseline } from './baseline.mjs';
+import { applyBaseline, applyForwardMigration } from './baseline.mjs';
 
 // Only the remote deployment path uses this baseline migration. Local setup is unchanged.
 if (!process.env.DATABASE_URL?.startsWith('libsql://') || !process.env.DATABASE_AUTH_TOKEN) {
@@ -11,6 +11,8 @@ const client = createClient({ url: process.env.DATABASE_URL, authToken: process.
 const sql = readFileSync(new URL('./schema.sql', import.meta.url), 'utf8');
 try {
   await applyBaseline(client, sql);
+  const idempotencySql = readFileSync(new URL('./migrations/002-idempotency.sql', import.meta.url), 'utf8');
+  await applyForwardMigration(client, '002-idempotency', idempotencySql);
   console.log('Remote schema is ready. Existing records were preserved.');
 } finally {
   client.close();

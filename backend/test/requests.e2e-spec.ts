@@ -33,6 +33,13 @@ describe('Employee-to-department requests (SQLite)', () => {
     for (const statement of sql.split(';').filter((part) => part.trim())) {
       await prisma.$executeRawUnsafe(statement);
     }
+    const idempotencyMigration = await readFile(
+      new URL('../prisma/migrations/002-idempotency.sql', import.meta.url),
+      'utf8',
+    );
+    for (const statement of idempotencyMigration.split(';').filter((part) => part.trim())) {
+      await prisma.$executeRawUnsafe(statement);
+    }
     for (const id of identities)
       await prisma.employee.create({
         data: { id, displayName: id, email: `${id}@example.com` },
@@ -154,12 +161,30 @@ describe('Employee-to-department requests (SQLite)', () => {
         .expect(400);
       expect(await prisma.serviceRequest.count()).toBe(count);
       concerns = [];
+      const idempotencyKey = 'test-submit-key-0001';
       const created = await request(app.getHttpServer())
         .post('/ai/submit-request')
         .set('x-employee-id', 'employee')
+        .set('Idempotency-Key', idempotencyKey)
         .send({ ...body, priority: 'Medium' })
         .expect(201);
       expect(created.body.status).toBe('Submitted');
+      const reviewCalls = vi.mocked(fetch).mock.calls.length;
+      const duplicate = await request(app.getHttpServer())
+        .post('/ai/submit-request')
+        .set('x-employee-id', 'employee')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({ ...body, priority: 'Medium' })
+        .expect(201);
+      expect(duplicate.body).toEqual(created.body);
+      expect(vi.mocked(fetch)).toHaveBeenCalledTimes(reviewCalls);
+      const mismatch = await request(app.getHttpServer())
+        .post('/ai/submit-request')
+        .set('x-employee-id', 'employee')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({ ...body, title: 'Different title', priority: 'Medium' })
+        .expect(409);
+      expect(mismatch.body.message).toContain('different request');
       const saved = await prisma.serviceRequest.findUnique({
         where: { ticketNumber: created.body.ticketNumber },
         include: { history: true },
@@ -167,6 +192,7 @@ describe('Employee-to-department requests (SQLite)', () => {
       expect(saved?.status).toBe('SUBMITTED');
       expect(saved?.history).toHaveLength(1);
       expect(saved?.history[0].toStatus).toBe('SUBMITTED');
+      expect(await prisma.serviceRequest.count()).toBe(count + 1);
     } finally {
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
@@ -265,6 +291,37 @@ describe('Employee-to-department requests (SQLite)', () => {
       .send(body)
       .expect(401);
     await request(app.getHttpServer()).get('/requests').expect(401);
+  });
+
+  it('replays direct submissions after reconnect without creating a second ticket', async () => {
+    const key = 'direct-submit-key-001';
+    const first = await request(app.getHttpServer())
+      .post('/requests')
+      .set('x-employee-id', 'employee')
+      .set('Idempotency-Key', key)
+      .send(body)
+      .expect(201);
+    await prisma.$disconnect();
+    await prisma.$connect();
+    const retry = await request(app.getHttpServer())
+      .post('/requests')
+      .set('x-employee-id', 'employee')
+      .set('Idempotency-Key', key)
+      .send(body)
+      .expect(201);
+    expect(retry.body).toEqual(first.body);
+    await request(app.getHttpServer())
+      .post('/requests')
+      .set('x-employee-id', 'employee')
+      .set('Idempotency-Key', key)
+      .send({ ...body, description: 'Changed payload' })
+      .expect(409);
+    const matches = await prisma.serviceRequest.findMany({
+      where: { idempotencyKey: key },
+      include: { history: true },
+    });
+    expect(matches).toHaveLength(1);
+    expect(matches[0].history).toHaveLength(1);
   });
 
   it.each(['High', 'Medium', 'Low'])(
