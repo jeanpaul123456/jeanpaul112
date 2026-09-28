@@ -8,7 +8,7 @@ Employees choose IT, Human Resources, or Finance, describe a problem, and select
 
 **Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** Select Charbel Chouaifaty to submit a fictional request; select Jean-Paul Chouaifaty to handle IT requests. No password is needed for the demo. The September 28 live check verified AI submission, staff processing, completion notifications and wrong-department denial. Persistence through service redeployments and the controlled AI failure/recovery drill also passed; see [release operations](docs/week5-release-operations.md). Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
 
-**Current working-tree release status: NOT YET DEPLOYED.** The idempotent-submission improvement passed local build, API/database, and browser checks, but its forward database migration must be deployed and the live critical journey reverified before claiming GO for this revision. The live evidence above describes the previously deployed revision.
+**Pushed source status: NOT YET DEPLOYED.** The idempotent-submission improvement is on `origin/master` and passed local build, API/database, browser, and lint checks. The provider-dependent release gate remains pending until the exposed Gemini key is rotated. Its forward database migration must also be deployed and the live critical journey reverified before claiming GO for this revision. The live evidence above describes the previously deployed revision.
 
 The [submission guide](docs/final-submission.md) contains the four email recipients, exact subject format, required fields, push commands and defense checklist. Deadline: **September 30, 2026 at 12:00 PM Beirut time**.
 
@@ -226,7 +226,7 @@ A missing key, exhausted quota, unavailable provider, timeout, or invalid model 
 
 ## Verification and Week 4 status
 
-The historical September 26 release gate passed **71 tests**: 25 unit, 41 API/database and 5 browser tests, plus 8 live AI evaluation cases. On September 28, the current working tree passed `npm run check`: both builds, 25 unit tests, 42 API/database tests and 5 browser tests (72 deterministic tests total). New tests cover idempotent retry after commit, changed-payload conflict, migration checksum protection and browser recovery after a lost response. This local run does not apply the forward migration to the hosted database or constitute live release approval; run the release gate with a rotated, valid AI credential, then deploy and reverify the exact resulting commit.
+The historical September 26 release gate passed **71 tests**: 25 unit, 41 API/database and 5 browser tests, plus 8 live AI evaluation cases. On September 28, the pushed candidate passed `npm run check`: both builds, 25 unit tests, 42 API/database tests and 5 browser tests (72 deterministic tests total); backend lint also passed. New tests cover idempotent retry after commit, changed-payload conflict, migration checksum protection and browser recovery after a lost response. The credential-safe run did not call Gemini, does not apply the forward migration to the hosted database, and is not live release approval. Rotate the exposed key, run the provider-dependent release gate, then deploy and reverify the exact resulting commit.
 
 Automated AI tests use simulated provider responses. They check validation and failure handling without making paid calls. Browser coverage includes a real local-mode submission through the backend and isolated SQLite database; the manual lifecycle regression uses the legacy API.
 

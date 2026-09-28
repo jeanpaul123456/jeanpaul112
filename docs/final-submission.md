@@ -20,7 +20,7 @@ Deadline: **Wednesday, September 30, 2026, 12:00 PM Beirut time**. Submit early 
 
 AI is advisory. The backend validates its output, and department staff control acceptance and completion. Provider failure keeps the draft unsent. The public app uses demo identities and fictional data.
 
-The confirmed student name is Jean-Paul Chouaifaty. The idempotent-submission change is currently local and is not part of the observed deployed SHA above. Its local checks passed, but the new forward migration and changed application code still need deployment and remote verification. **Do not submit the historical SHA as the final release.** First rotate the exposed AI key, run the release gate, commit and push, deploy that exact commit, verify `/health` matches `git rev-parse HEAD`, apply and verify the migration, and pass the live smoke and critical user journey. If any of those checks fail or remain undone, the current release is NO-GO.
+The confirmed student name is Jean-Paul Chouaifaty. The idempotent-submission change is pushed to `origin/master` but is not part of the observed deployed SHA above. Credential-safe local checks passed; the live-AI release gate, new forward migration, and changed application code still need release verification. **Do not submit the historical SHA as the final release.** First rotate the exposed AI key, run the release gate, deploy the pushed commit, verify `/health` matches `git rev-parse HEAD`, apply and verify the migration, and pass the live smoke and critical user journey. If any of those checks fail or remain undone, the current release is NO-GO.
 
 ## Email draft
 
