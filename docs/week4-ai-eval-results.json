@@ -1,5 +1,5 @@
 {
-  "evaluatedAt": "2026-09-29T10:01:50.547Z",
+  "evaluatedAt": "2026-09-29T10:38:22.407Z",
   "model": "gemini-3.1-flash-lite",
   "command": "npm run eval:ai",
   "liveCases": 6,
@@ -18,8 +18,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 212,
-          "candidatesTokenCount": 122,
-          "totalTokenCount": 334,
+          "candidatesTokenCount": 119,
+          "totalTokenCount": 331,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -31,7 +31,7 @@
       },
       "persistenceCalls": 1,
       "providerAttempts": 1,
-      "durationMs": 2967,
+      "durationMs": 5160,
       "expected": {
         "department": "it",
         "priorities": [
@@ -42,11 +42,11 @@
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Urgent: Company laptop fails to power on",
-        "improvedDescription": "My company laptop will not turn on despite being connected to the power adapter. I am currently unable to perform my job duties as I do not have an alternative device available. Please assist with troubleshooting or hardware replacement to restore access.",
+        "improvedTitle": "Company laptop failure: Device will not power on",
+        "improvedDescription": "My company laptop fails to power on even when connected to the charger. I currently have no alternative device to perform my work duties. Please provide assistance in restoring my access.",
         "suggestedDepartmentSlug": "it",
         "suggestedPriority": "High",
-        "explanation": "The request clearly describes a hardware failure that prevents work and requires immediate technical support.",
+        "explanation": "The request clearly describes a hardware failure preventing all work, justifying the High priority. No further clarification is needed to proceed.",
         "concerns": []
       }
     },
@@ -60,8 +60,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 208,
-          "candidatesTokenCount": 119,
-          "totalTokenCount": 327,
+          "candidatesTokenCount": 113,
+          "totalTokenCount": 321,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -72,8 +72,8 @@
         }
       },
       "persistenceCalls": 1,
-      "providerAttempts": 1,
-      "durationMs": 3782,
+      "providerAttempts": 2,
+      "durationMs": 6336,
       "expected": {
         "department": "hr",
         "priorities": [
@@ -84,11 +84,11 @@
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Inquiry regarding annual leave submission procedure",
-        "improvedDescription": "Could you please provide instructions on how to formally submit an annual leave request for the upcoming month? This is a general process inquiry and does not currently impact my ability to work.",
+        "improvedTitle": "Inquiry regarding annual leave request submission procedure",
+        "improvedDescription": "Could you please explain the process for submitting an annual leave request for next month? This is a general inquiry and does not impact my current work duties.",
         "suggestedDepartmentSlug": "hr",
         "suggestedPriority": "Low",
-        "explanation": "The request is a standard policy inquiry concerning leave submission processes, which falls under HR responsibilities and does not require urgent attention.",
+        "explanation": "The request is clear and actionable, seeking procedural guidance on leave submission without any urgency. The categorizations are appropriate.",
         "concerns": []
       }
     },
@@ -102,8 +102,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 184,
-          "candidatesTokenCount": 188,
-          "totalTokenCount": 372,
+          "candidatesTokenCount": 183,
+          "totalTokenCount": 367,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -114,23 +114,23 @@
         }
       },
       "persistenceCalls": 0,
-      "providerAttempts": 1,
-      "durationMs": 4300,
+      "providerAttempts": 2,
+      "durationMs": 9119,
       "expected": {
         "concerns": "some",
         "submission": "blocked"
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Request for technical support regarding unspecified broken service",
-        "improvedDescription": "The user reported that something is broken but did not provide details regarding the specific system, application, or nature of the issue. Please provide further information so we can investigate.",
+        "improvedTitle": "Report of an issue regarding [Item/System Name]",
+        "improvedDescription": "The user reported that an item or system is currently broken. Please provide specific details on the system affected, the error message received, and the steps taken leading up to the issue.",
         "suggestedDepartmentSlug": "it",
-        "suggestedPriority": "Low",
-        "explanation": "The original request lacked sufficient detail to categorize the issue or determine its impact. I have set the priority to Low until further information is provided.",
+        "suggestedPriority": "Medium",
+        "explanation": "The original request is too vague to determine the specific nature of the problem or its impact on operations. Additional information is required to route this request appropriately.",
         "concerns": [
-          "The description 'It is broken' does not identify the system, hardware, or software experiencing the issue.",
-          "There is no information regarding the impact of the issue or steps to reproduce the error.",
-          "The title 'Help' is too generic and does not help triage the ticket."
+          "The title 'Help' is not descriptive.",
+          "The description 'It is broken' does not identify the affected system, application, or equipment.",
+          "There is no information regarding the severity of the impact on current work tasks."
         ]
       }
     },
@@ -144,8 +144,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 204,
-          "candidatesTokenCount": 174,
-          "totalTokenCount": 378,
+          "candidatesTokenCount": 161,
+          "totalTokenCount": 365,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -157,7 +157,7 @@
       },
       "persistenceCalls": 0,
       "providerAttempts": 1,
-      "durationMs": 4213,
+      "durationMs": 4088,
       "expected": {
         "department": "finance",
         "concerns": "some",
@@ -166,13 +166,13 @@
       "problems": [],
       "candidate": {
         "improvedTitle": "Request for reimbursement of unpaid travel expenses",
-        "improvedDescription": "I am seeking assistance with the reimbursement process for unpaid travel expenses. My laptop is functioning correctly, and this request is regarding financial compensation rather than technical support.",
+        "improvedDescription": "I need assistance with getting my travel expenses reimbursed. Please note that the laptop is functioning correctly and is unrelated to this request.",
         "suggestedDepartmentSlug": "finance",
-        "suggestedPriority": "Medium",
-        "explanation": "The original request title and description were contradictory, as the issue described pertains to financial reimbursement rather than a hardware failure. I have updated the categorization to reflect the nature of the request.",
+        "suggestedPriority": "Low",
+        "explanation": "The original request had a contradictory title and description and was assigned to the wrong department. I have redirected it to Finance based on the nature of the request.",
         "concerns": [
-          "The initial title indicated a hardware issue, while the description clarified the actual request is for financial reimbursement.",
-          "The original department selection was IT, but the request falls under the Finance department's purview."
+          "The title states the laptop will not start, but the description states the laptop works perfectly.",
+          "The request pertains to travel expense reimbursement, which is a finance matter, not an IT issue."
         ]
       }
     },
@@ -186,8 +186,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 216,
-          "candidatesTokenCount": 168,
-          "totalTokenCount": 384,
+          "candidatesTokenCount": 177,
+          "totalTokenCount": 393,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -199,21 +199,21 @@
       },
       "persistenceCalls": 0,
       "providerAttempts": 1,
-      "durationMs": 3364,
+      "durationMs": 5942,
       "expected": {
         "department": "finance",
         "submission": "blocked"
       },
       "problems": [],
       "candidate": {
-        "improvedTitle": "Status check for approved travel expense reimbursement",
-        "improvedDescription": "My approved travel expense reimbursement has not been received yet. Please check the current payment status. This request does not impact my current work.",
+        "improvedTitle": "Status Inquiry: Approved Travel Expense Reimbursement",
+        "improvedDescription": "My approved travel expense reimbursement has not been received yet. Please check the current payment status of this claim. This issue is not currently blocking my work.",
         "suggestedDepartmentSlug": "finance",
         "suggestedPriority": "Low",
-        "explanation": "The request involves reimbursement status, which falls under Finance. I have adjusted the priority to Low as the user explicitly stated it is not blocking their work.",
+        "explanation": "The request pertains to financial reimbursement, which falls under the Finance department. I have adjusted the priority to Low as the user explicitly stated it is not blocking their work.",
         "concerns": [
-          "The requested department 'executive-payments' does not exist in the provided catalog and was redirected to the appropriate Finance department.",
-          "The initial department selection of 'IT' was inconsistent with the nature of a financial reimbursement request."
+          "The requested department 'executive-payments' does not exist in the provided directory; the request has been routed to Finance.",
+          "The original request incorrectly assigned this task to IT, which is not equipped to handle payroll or reimbursement inquiries."
         ]
       }
     },
@@ -227,8 +227,8 @@
         "finishReason": "STOP",
         "usage": {
           "promptTokenCount": 218,
-          "candidatesTokenCount": 128,
-          "totalTokenCount": 346,
+          "candidatesTokenCount": 133,
+          "totalTokenCount": 351,
           "promptTokensDetails": [
             {
               "modality": "TEXT",
@@ -240,7 +240,7 @@
       },
       "persistenceCalls": 1,
       "providerAttempts": 1,
-      "durationMs": 1713,
+      "durationMs": 4361,
       "expected": {
         "department": "it",
         "priorities": [
@@ -253,10 +253,10 @@
       "problems": [],
       "candidate": {
         "improvedTitle": "Repair request for non-functional company laptop",
-        "improvedDescription": "My company laptop will not turn on. I have a spare laptop equipped with all necessary work applications and can continue my tasks normally. Please arrange a repair whenever convenient as this is not an urgent matter.",
+        "improvedDescription": "My company laptop will not turn on. I am currently using a spare laptop containing all necessary work applications, so I am able to continue working normally. Please arrange for a repair whenever it is convenient; this request is not urgent.",
         "suggestedDepartmentSlug": "it",
         "suggestedPriority": "Low",
-        "explanation": "The request is clear and provides necessary context regarding the impact of the hardware issue. Since work is not blocked, a Low priority is appropriate.",
+        "explanation": "The request provides all necessary details regarding the hardware issue and confirms the employee's current work status, allowing for non-urgent scheduling.",
         "concerns": []
       }
     },

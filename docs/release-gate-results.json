@@ -1,6 +1,6 @@
 {
-  "checkedAt": "2026-09-29T10:03:12.204Z",
-  "commit": "9f3d3d09a29631acf33397cff10b2a70a54a67c9",
+  "checkedAt": "2026-09-29T10:38:22.449Z",
+  "commit": "1fe7014b47ffa4dfa5c94f89ccced536ce19cca8",
   "workingTreeChanged": true,
   "results": [
     {
@@ -10,19 +10,8 @@
     {
       "command": "npm run eval:ai",
       "passed": true
-    },
-    {
-      "command": "npm --prefix backend run lint",
-      "passed": true
     }
   ],
   "automatedGate": "PASS",
-  "finalGo": "PENDING: login update is local only. Configure hosted credentials, deploy, verify authenticated live journey and final SHA.",
-  "execution": "Commands run separately: npm run check, npm run eval:ai, npm --prefix backend run lint",
-  "testCounts": {
-    "unit": 27,
-    "apiDatabase": 46,
-    "browser": 6,
-    "ai": 8
-  }
+  "finalGo": "PENDING: remote browser smoke, persistence after restart, failure/recovery and submitted SHA must be verified."
 }

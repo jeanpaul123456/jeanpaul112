@@ -6,9 +6,9 @@ Employees choose IT, Human Resources, or Finance, describe a problem, and select
 
 ## Final release handoff
 
-**Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** The email/username login update is saved locally and has not yet been deployed. The seed now configures the email/username demo accounts; no password environment variable is needed. Earlier live verification covers the previous employee-selector version. Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
+**Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** The current Render release uses email-and-username demo sign-in. On September 29, `/health` reported release `1fe7014b47ffa4dfa5c94f89ccced536ce19cca8`; the same commit passed the strict local release gate and live smoke checks. Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
 
-**Login update:** both builds, 27 unit tests, 48 API/database tests and 6 browser tests passed. The previous live release is `9f3d3d0`; these source changes require a new deployment and live verification before submission.
+**Latest verification (September 29):** both builds, 27 unit tests, 48 API/database tests, 6 browser tests, backend lint, and **8/8 AI evaluations** passed. Live Render smoke returned 200 for the app, health, and readiness endpoints; `/directory` returned 401 as expected because it now requires sign-in. The local gate refreshed its evidence reports; commit them if you want the GitHub copies to reflect this exact run.
 
 The [submission guide](docs/final-submission.md) contains the four email recipients, exact subject format, required fields, push commands and defense checklist. Deadline: **September 30, 2026 at 12:00 PM Beirut time**.
 
@@ -54,7 +54,7 @@ If you already have this folder, start with `npm ci` inside it. `setup` installs
 
 Open **http://localhost:3000/app/**. Keep the terminal running. Stop it with Ctrl+C.
 
-The backend serves the compiled React app from `frontend/dist`. After editing code, stop the server, run `npm run build`, then `npm start` again.
+The backend serves the compiled React app from `frontend/dist`. After editing code, stop the server, run `npm run build`, then `npm start` again. If port 3000 is already in use, reuse the running local app rather than starting a second copy; the login flow is on `http://127.0.0.1:3000/app/`.
 
 ## Employee demo access
 
@@ -67,7 +67,7 @@ Sign in with the matching email and username below. No password or email verific
 | Maria Boutros (Finance) | maria@gmail.com | maria |
 | Charbel Chouaifaty (requester) | charbel@gmail.com | charbel |
 
-Setup updates these four existing employee records while preserving their IDs, requests and memberships. Migration `004-employee-username` adds the username field; earlier migrations remain unchanged. Seed also updates the local `.tmp/employee-logins.txt` with the email/username pairs. `EMPLOYEE_INITIAL_PASSWORDS` is no longer read or required.
+Setup updates these four existing employee records while preserving their IDs, requests and memberships. Migration `004-employee-username` adds the username field; earlier migrations remain unchanged. Seed also updates the local `.tmp/employee-logins.txt` with the email/username pairs. `EMPLOYEE_INITIAL_PASSWORDS` is no longer read or required. Remote startup applies migration `003-employee-login` before `004-employee-username`.
 
 A session cookie still controls access to product endpoints and expires after eight hours or sign-out. This is demo access, not secure employee authentication: anyone who knows a listed pair can use that account. Use fictional data only. No verification code, password or Google sign-in is involved.
 
