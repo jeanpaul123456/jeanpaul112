@@ -15,6 +15,16 @@ it('repeated release migrations preserve data and reject baseline drift', async 
     await client.execute("INSERT INTO Department (id, name, slug) VALUES ('it', 'IT', 'it')");
     await client.execute("INSERT INTO ServiceRequest (id, ticketNumber, title, description, creatorId, departmentId, updatedAt) VALUES ('r1', 'REQ-1', 'Saved', 'Saved', 'saved', 'it', CURRENT_TIMESTAMP)");
     expect((await client.execute('SELECT idempotencyKey FROM ServiceRequest')).rows).toHaveLength(1);
+    const loginSql = await readFile(new URL('../prisma/migrations/003-employee-login.sql', import.meta.url), 'utf8');
+    await applyForwardMigration(client, '003-employee-login', loginSql);
+    await applyForwardMigration(client, '003-employee-login', loginSql);
+    expect((await client.execute('SELECT ticketNumber FROM ServiceRequest')).rows[0].ticketNumber).toBe('REQ-1');
+    expect((await client.execute('SELECT * FROM LoginSession')).rows).toHaveLength(0);
+    const usernameSql = await readFile(new URL('../prisma/migrations/004-employee-username.sql', import.meta.url), 'utf8');
+    await applyForwardMigration(client, '004-employee-username', usernameSql);
+    await applyForwardMigration(client, '004-employee-username', usernameSql);
+    expect((await client.execute('SELECT username FROM Employee')).rows[0].username).toBeNull();
+    expect((await client.execute('SELECT ticketNumber FROM ServiceRequest')).rows[0].ticketNumber).toBe('REQ-1');
     await expect(applyForwardMigration(client, '002-idempotency', migration + '\n-- changed'))
       .rejects.toThrow('Migration 002-idempotency changed');
     await expect(applyBaseline(client, sql + '\n-- changed baseline')).rejects.toThrow('Baseline schema changed');

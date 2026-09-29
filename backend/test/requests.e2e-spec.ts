@@ -13,6 +13,7 @@ describe('Employee-to-department requests (SQLite)', () => {
   let prisma: PrismaService;
   let directory: string;
   let originalUrl: string | undefined;
+  const cookies: Record<string, string> = {};
   const identities = ['it-staff', 'hr-staff', 'finance-staff', 'employee'];
   const departments = ['it', 'hr', 'finance'];
   const body = {
@@ -40,9 +41,13 @@ describe('Employee-to-department requests (SQLite)', () => {
     for (const statement of idempotencyMigration.split(';').filter((part) => part.trim())) {
       await prisma.$executeRawUnsafe(statement);
     }
+    const loginSql = await readFile(new URL('../prisma/migrations/003-employee-login.sql', import.meta.url), 'utf8');
+    for (const statement of loginSql.split(';').filter(part => part.trim())) await prisma.$executeRawUnsafe(statement);
+    const usernameSql = await readFile(new URL('../prisma/migrations/004-employee-username.sql', import.meta.url), 'utf8');
+    for (const statement of usernameSql.split(';').filter(part => part.trim())) await prisma.$executeRawUnsafe(statement);
     for (const id of identities)
       await prisma.employee.create({
-        data: { id, displayName: id, email: `${id}@example.com` },
+        data: { id, username: id, displayName: id, email: `${id}@example.com` },
       });
     for (const slug of departments) {
       await prisma.department.create({
@@ -58,11 +63,102 @@ describe('Employee-to-department requests (SQLite)', () => {
       .compile();
     app = module.createNestApplication();
     await app.init();
+    for (const id of identities) {
+      const login = await request(app.getHttpServer()).post('/auth/login').send({ email: id + '@example.com', username: id }).expect(201);
+      cookies[id] = login.headers['set-cookie'][0].split(';')[0];
+    }
   });
 
   it('exposes readiness using the real database', async () => {
     const response = await request(app.getHttpServer()).get('/health/ready').expect(200);
     expect(response.body).toMatchObject({ status: 'ok', database: 'ok' });
+  });
+
+  it('requires a session and ignores a forged employee header', async () => {
+    await request(app.getHttpServer()).get('/directory').set('x-employee-id', 'it-staff').expect(401);
+    const response = await request(app.getHttpServer()).get('/auth/me')
+      .set('Cookie', cookies.employee).set('x-employee-id', 'it-staff').expect(200);
+    expect(response.body.id).toBe('employee');
+    expect(response.body.passwordHash).toBeUndefined();
+    expect(response.body.credential).toBeUndefined();
+    await request(app.getHttpServer()).get('/requests?department=it')
+      .set('Cookie', cookies.employee).set('x-employee-id', 'it-staff').expect(403);
+  });
+
+  it('rejects incorrect credentials and cross-site login', async () => {
+    for (const email of ['employee@example.com', 'missing@example.com']) {
+      await request(app.getHttpServer()).post('/auth/login')
+        .send({ email, username: 'wrong-password' }).expect(401)
+        .expect(({ body }) => expect(body.message).toBe('Email or username is incorrect.'));
+    }
+    await request(app.getHttpServer()).post('/auth/login').set('Origin', 'https://untrusted.example')
+      .send({ email: 'employee@example.com', username: 'employee' }).expect(403);
+  });
+
+  it('persists sessions across reconnect, revokes logout and rejects expiry', async () => {
+    const signIn = () => request(app.getHttpServer()).post('/auth/login')
+      .send({ email: 'employee@example.com', username: 'employee' }).expect(201);
+    const login = await signIn();
+    expect(login.headers['set-cookie'][0]).toContain('HttpOnly');
+    expect(login.headers['set-cookie'][0]).toContain('SameSite=Strict');
+    const cookie = login.headers['set-cookie'][0].split(';')[0];
+    await prisma.$disconnect(); await prisma.$connect();
+    await request(app.getHttpServer()).get('/auth/me').set('Cookie', cookie).expect(200);
+    await request(app.getHttpServer()).post('/auth/logout').set('Cookie', cookie).send({}).expect(201);
+    await request(app.getHttpServer()).get('/auth/me').set('Cookie', cookie).expect(401);
+    const expiryLogin = await signIn();
+    const expiryCookie = expiryLogin.headers['set-cookie'][0].split(';')[0];
+    const { createHash } = await import('node:crypto');
+    const tokenHash = createHash('sha256').update(expiryCookie.split('=')[1]).digest('hex');
+    await prisma.loginSession.update({ where: { tokenHash }, data: { expiresAt: new Date(0) } });
+    await request(app.getHttpServer()).get('/auth/me').set('Cookie', expiryCookie).expect(401);
+  });
+
+  it('limits repeated failed sign-ins', async () => {
+    for (let i = 0; i < 20; i++) await request(app.getHttpServer()).post('/auth/login')
+      .send({ email: 'throttled@example.com', username: 'wrong-password' }).expect(401);
+    await request(app.getHttpServer()).post('/auth/login')
+      .send({ email: 'throttled@example.com', username: 'wrong-password' }).expect(429);
+  });
+
+  it('accepts the configured public origin behind a proxy but rejects forged origins', async () => {
+    const previous = process.env.APP_ORIGIN;
+    process.env.APP_ORIGIN = 'https://hub.example.com';
+    try {
+      const login = () => request(app.getHttpServer()).post('/auth/login')
+        .set('Host', 'internal-proxy:10000');
+      await login().set('Origin', 'https://hub.example.com')
+        .send({ email: 'employee@example.com', username: 'employee' }).expect(201);
+      for (const origin of ['https://attacker.example', 'http://hub.example.com', 'null', 'https://hub.example.com.attacker.example']) {
+        await login().set('Origin', origin).set('X-Forwarded-Host', 'hub.example.com')
+          .send({ email: 'employee@example.com', username: 'employee' }).expect(403);
+      }
+    } finally {
+      if (previous === undefined) delete process.env.APP_ORIGIN; else process.env.APP_ORIGIN = previous;
+    }
+  });
+
+  it('uses Render public URL and supports the local Vite proxy only in development', async () => {
+    const original = { app: process.env.APP_ORIGIN, render: process.env.RENDER_EXTERNAL_URL, node: process.env.NODE_ENV };
+    delete process.env.APP_ORIGIN;
+    try {
+      process.env.RENDER_EXTERNAL_URL = 'https://example.onrender.com';
+      await request(app.getHttpServer()).post('/auth/login').set('Host', 'internal:10000')
+        .set('Origin', 'https://example.onrender.com')
+        .send({ email: 'employee@example.com', username: 'employee' }).expect(201);
+      delete process.env.RENDER_EXTERNAL_URL;
+      process.env.NODE_ENV = 'development';
+      await request(app.getHttpServer()).post('/auth/login').set('Host', '127.0.0.1:3000')
+        .set('Origin', 'http://localhost:5173')
+        .send({ email: 'employee@example.com', username: 'employee' }).expect(201);
+      process.env.NODE_ENV = 'production';
+      await request(app.getHttpServer()).post('/auth/login').set('Host', '127.0.0.1:3000')
+        .set('Origin', 'http://localhost:5173').send({}).expect(403);
+    } finally {
+      for (const [key, value] of Object.entries({ APP_ORIGIN: original.app, RENDER_EXTERNAL_URL: original.render, NODE_ENV: original.node })) {
+        if (value === undefined) delete process.env[key]; else process.env[key] = value;
+      }
+    }
   });
 
   it('reviews using real employee and department records without creating a request', async () => {
@@ -99,19 +195,19 @@ describe('Employee-to-department requests (SQLite)', () => {
     try {
       await request(app.getHttpServer())
         .post('/ai/review-request')
-        .set('x-employee-id', 'unknown')
+        .set('Cookie', cookies['unknown'] || 'hub_session=invalid')
         .send({ ...body, priority: 'Medium' })
         .expect(401);
       expect(fetch).not.toHaveBeenCalled();
       await request(app.getHttpServer())
         .post('/ai/review-request')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .send({ ...body, priority: 'invalid' })
         .expect(400);
       expect(fetch).not.toHaveBeenCalled();
       const result = await request(app.getHttpServer())
         .post('/ai/review-request')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .send({ ...body, priority: 'Medium' })
         .expect(201);
       expect(result.body.suggestedDepartmentSlug).toBe('it');
@@ -156,7 +252,7 @@ describe('Employee-to-department requests (SQLite)', () => {
       const count = await prisma.serviceRequest.count();
       await request(app.getHttpServer())
         .post('/ai/submit-request')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .send({ ...body, priority: 'Medium' })
         .expect(400);
       expect(await prisma.serviceRequest.count()).toBe(count);
@@ -164,7 +260,7 @@ describe('Employee-to-department requests (SQLite)', () => {
       const idempotencyKey = 'test-submit-key-0001';
       const created = await request(app.getHttpServer())
         .post('/ai/submit-request')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .set('Idempotency-Key', idempotencyKey)
         .send({ ...body, priority: 'Medium' })
         .expect(201);
@@ -172,7 +268,7 @@ describe('Employee-to-department requests (SQLite)', () => {
       const reviewCalls = vi.mocked(fetch).mock.calls.length;
       const duplicate = await request(app.getHttpServer())
         .post('/ai/submit-request')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .set('Idempotency-Key', idempotencyKey)
         .send({ ...body, priority: 'Medium' })
         .expect(201);
@@ -180,7 +276,7 @@ describe('Employee-to-department requests (SQLite)', () => {
       expect(vi.mocked(fetch)).toHaveBeenCalledTimes(reviewCalls);
       const mismatch = await request(app.getHttpServer())
         .post('/ai/submit-request')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .set('Idempotency-Key', idempotencyKey)
         .send({ ...body, title: 'Different title', priority: 'Medium' })
         .expect(409);
@@ -221,13 +317,13 @@ describe('Employee-to-department requests (SQLite)', () => {
   )('allows %s to send to %s', async (id, department) => {
     const created = await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', id)
+      .set('Cookie', cookies[id] || 'hub_session=invalid')
       .send({ ...body, departmentSlug: department })
       .expect(201);
     const ticket = created.body.ticketNumber;
     const personal = await request(app.getHttpServer())
       .get('/requests')
-      .set('x-employee-id', id)
+      .set('Cookie', cookies[id] || 'hub_session=invalid')
       .expect(200);
     expect(personal.body).toEqual(
       expect.arrayContaining([
@@ -243,7 +339,7 @@ describe('Employee-to-department requests (SQLite)', () => {
     );
     const inbox = await request(app.getHttpServer())
       .get(`/requests?department=${department}`)
-      .set('x-employee-id', `${department}-staff`)
+      .set('Cookie', cookies[`${department}-staff`] || 'hub_session=invalid')
       .expect(200);
     expect(
       inbox.body.some(
@@ -253,7 +349,7 @@ describe('Employee-to-department requests (SQLite)', () => {
     const otherDepartment = departments.find((item) => item !== department)!;
     const otherInbox = await request(app.getHttpServer())
       .get(`/requests?department=${otherDepartment}`)
-      .set('x-employee-id', `${otherDepartment}-staff`)
+      .set('Cookie', cookies[`${otherDepartment}-staff`] || 'hub_session=invalid')
       .expect(200);
     expect(
       otherInbox.body.some(
@@ -277,7 +373,7 @@ describe('Employee-to-department requests (SQLite)', () => {
     const before = await prisma.serviceRequest.count();
     await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .send(invalid)
       .expect(400);
     expect(await prisma.serviceRequest.count()).toBe(before);
@@ -287,7 +383,7 @@ describe('Employee-to-department requests (SQLite)', () => {
     await request(app.getHttpServer()).post('/requests').send(body).expect(401);
     await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'unknown')
+      .set('Cookie', cookies['unknown'] || 'hub_session=invalid')
       .send(body)
       .expect(401);
     await request(app.getHttpServer()).get('/requests').expect(401);
@@ -297,7 +393,7 @@ describe('Employee-to-department requests (SQLite)', () => {
     const key = 'direct-submit-key-001';
     const first = await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .set('Idempotency-Key', key)
       .send(body)
       .expect(201);
@@ -305,14 +401,14 @@ describe('Employee-to-department requests (SQLite)', () => {
     await prisma.$connect();
     const retry = await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .set('Idempotency-Key', key)
       .send(body)
       .expect(201);
     expect(retry.body).toEqual(first.body);
     await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .set('Idempotency-Key', key)
       .send({ ...body, description: 'Changed payload' })
       .expect(409);
@@ -329,14 +425,14 @@ describe('Employee-to-department requests (SQLite)', () => {
     async (priority) => {
       const created = await request(app.getHttpServer())
         .post('/requests')
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .send({ ...body, priority })
         .expect(201);
       await prisma.$disconnect();
       await prisma.$connect();
       const detail = await request(app.getHttpServer())
         .get(`/requests/${created.body.ticketNumber}`)
-        .set('x-employee-id', 'employee')
+        .set('Cookie', cookies['employee'] || 'hub_session=invalid')
         .expect(200);
       expect(detail.body.priority).toBe(priority);
       for (const [url, id] of [
@@ -345,7 +441,7 @@ describe('Employee-to-department requests (SQLite)', () => {
       ]) {
         const list = await request(app.getHttpServer())
           .get(url)
-          .set('x-employee-id', id)
+          .set('Cookie', cookies[id] || 'hub_session=invalid')
           .expect(200);
         expect(list.body).toEqual(
           expect.arrayContaining([
@@ -362,32 +458,32 @@ describe('Employee-to-department requests (SQLite)', () => {
   it('records a staff update and requires a rejection reason without changing state on invalid input', async () => {
     const created = await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .send(body)
       .expect(201);
     const path = `/requests/${created.body.ticketNumber}`;
     for (const note of ['', '  ', 123, 'x'.repeat(2001)]) {
       await request(app.getHttpServer())
-        .patch(`${path}/status`)
-        .set('x-employee-id', 'it-staff')
+        .patch(`${path}/status`).set('Content-Type', 'application/json')
+        .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
         .send({ status: 'Rejected', note })
         .expect(400);
     }
     const unchanged = await request(app.getHttpServer())
       .get(path)
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     expect(unchanged.body.status).toBe('Submitted');
     expect(unchanged.body.history).toHaveLength(1);
     const note = 'Please send the asset number so we can identify your laptop.';
     await request(app.getHttpServer())
-      .patch(`${path}/status`)
-      .set('x-employee-id', 'it-staff')
+      .patch(`${path}/status`).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
       .send({ status: 'Rejected', note })
       .expect(200);
     const updated = await request(app.getHttpServer())
       .get(path)
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     expect(updated.body.status).toBe('Rejected');
     expect(updated.body.history[1]).toMatchObject({
@@ -396,8 +492,8 @@ describe('Employee-to-department requests (SQLite)', () => {
       changedBy: { id: 'it-staff' },
     });
     await request(app.getHttpServer())
-      .patch(`${path}/status`)
-      .set('x-employee-id', 'it-staff')
+      .patch(`${path}/status`).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
       .send({ status: 'Assigned' })
       .expect(400);
   });
@@ -405,35 +501,36 @@ describe('Employee-to-department requests (SQLite)', () => {
   it('restricts other employees and staff to permitted requests', async () => {
     const created = await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .send(body)
       .expect(201);
     const path = `/requests/${created.body.ticketNumber}`;
     await request(app.getHttpServer())
       .get(path)
-      .set('x-employee-id', 'hr-staff')
+      .set('Cookie', cookies['hr-staff'] || 'hub_session=invalid')
       .expect(403);
     await request(app.getHttpServer())
       .get('/requests?department=it')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(403);
     await request(app.getHttpServer())
-      .patch(`${path}/status`)
-      .set('x-employee-id', 'employee')
+      .patch(`${path}/status`).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .send({ status: 'Assigned' })
       .expect(403);
     await request(app.getHttpServer())
       .post(`${path}/claim`)
-      .set('x-employee-id', 'hr-staff')
+      .send({})
+      .set('Cookie', cookies['hr-staff'] || 'hub_session=invalid')
       .expect(403);
     await request(app.getHttpServer())
-      .patch(`${path}/status`)
-      .set('x-employee-id', 'hr-staff')
+      .patch(`${path}/status`).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['hr-staff'] || 'hub_session=invalid')
       .send({ status: 'Assigned' })
       .expect(403);
     const own = await request(app.getHttpServer())
       .get('/requests')
-      .set('x-employee-id', 'hr-staff')
+      .set('Cookie', cookies['hr-staff'] || 'hub_session=invalid')
       .expect(200);
     expect(
       own.body.every(
@@ -445,23 +542,24 @@ describe('Employee-to-department requests (SQLite)', () => {
   it('lets receiving staff process the request and preserves its description after reconnecting', async () => {
     const created = await request(app.getHttpServer())
       .post('/requests')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .send(body)
       .expect(201);
     const path = `/requests/${created.body.ticketNumber}`;
     await request(app.getHttpServer())
-      .patch(`${path}/status`)
-      .set('x-employee-id', 'it-staff')
+      .patch(`${path}/status`).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
       .send({ status: 'Completed' })
       .expect(400);
     await request(app.getHttpServer())
       .post(`${path}/claim`)
-      .set('x-employee-id', 'it-staff')
+      .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
+      .send({})
       .expect(201);
     for (const status of ['In Progress', 'Completed']) {
       await request(app.getHttpServer())
-        .patch(`${path}/status`)
-        .set('x-employee-id', 'it-staff')
+        .patch(`${path}/status`).set('Content-Type', 'application/json')
+        .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
         .send({
           status,
           note:
@@ -475,13 +573,13 @@ describe('Employee-to-department requests (SQLite)', () => {
     await prisma.$connect();
     const saved = await request(app.getHttpServer())
       .get(path)
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     expect(saved.body.description).toBe(body.description);
     expect(saved.body.status).toBe('Completed');
     const notifications = await request(app.getHttpServer())
       .get('/notifications')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     expect(notifications.body).toEqual(
       expect.arrayContaining([
@@ -494,12 +592,12 @@ describe('Employee-to-department requests (SQLite)', () => {
     const notificationPath = `/notifications/${created.body.ticketNumber}/read`;
     await request(app.getHttpServer()).get('/notifications').expect(401);
     await request(app.getHttpServer())
-      .patch(notificationPath)
-      .set('x-employee-id', 'hr-staff')
+      .patch(notificationPath).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['hr-staff'] || 'hub_session=invalid')
       .expect(404);
     const otherNotifications = await request(app.getHttpServer())
       .get('/notifications')
-      .set('x-employee-id', 'hr-staff')
+      .set('Cookie', cookies['hr-staff'] || 'hub_session=invalid')
       .expect(200);
     expect(
       otherNotifications.body.some(
@@ -508,14 +606,14 @@ describe('Employee-to-department requests (SQLite)', () => {
       ),
     ).toBe(false);
     await request(app.getHttpServer())
-      .patch(notificationPath)
-      .set('x-employee-id', 'employee')
+      .patch(notificationPath).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     await prisma.$disconnect();
     await prisma.$connect();
     const readNotifications = await request(app.getHttpServer())
       .get('/notifications')
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     expect(
       readNotifications.body.find(
@@ -525,7 +623,7 @@ describe('Employee-to-department requests (SQLite)', () => {
     ).toEqual(expect.any(String));
     const unchangedRequest = await request(app.getHttpServer())
       .get(path)
-      .set('x-employee-id', 'employee')
+      .set('Cookie', cookies['employee'] || 'hub_session=invalid')
       .expect(200);
     expect(unchangedRequest.body.updatedAt).toBe(saved.body.updatedAt);
     expect(saved.body.history).toHaveLength(4);
@@ -534,8 +632,8 @@ describe('Employee-to-department requests (SQLite)', () => {
       'Replaced the faulty charger and tested startup.',
     );
     await request(app.getHttpServer())
-      .patch(`${path}/status`)
-      .set('x-employee-id', 'it-staff')
+      .patch(`${path}/status`).set('Content-Type', 'application/json')
+      .set('Cookie', cookies['it-staff'] || 'hub_session=invalid')
       .send({ status: 'In Progress' })
       .expect(400);
   });

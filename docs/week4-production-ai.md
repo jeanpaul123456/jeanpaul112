@@ -174,7 +174,7 @@ Run from the repository root after setup, with a valid Gemini key in backend/.en
 npm run eval:ai
 ```
 
-The command builds the backend and exercises its real review and submission logic. It uses an in-memory department catalog and a persistence spy, so no employee request is saved. The live cases require network access and use the account's Gemini quota. The selected model is read from GEMINI_MODEL. No paid-provider fallback is used; the controller's deterministic fallback is part of the local application logic.
+The command builds the backend and exercises its real review and submission logic. It uses an in-memory department catalog and a persistence spy, so no employee request is saved. The live cases require network access and use the account's Gemini quota. The selected model is read from GEMINI_MODEL. Gemini failures are not replaced by local rules or another provider. Local rule checks run only when the application is configured for local mode (or an unrecognized mode value).
 
 Assertions check department, concerns, priority and whether persistence is allowed. They do not require identical generated prose. The two impact cases compare blocked work with work continuing on a spare device. This is a small semantic rubric, not proof that all wording or factual accuracy is correct.
 

@@ -1,10 +1,12 @@
 # Data model
 
+Employee demo login uses a nullable unique `Employee.username` added by migration `004-employee-username`. Seed supplies matching Gmail-formatted email/username pairs for the four employees. `LoginSession` stores a hashed random token, employee foreign key and expiry. The earlier `EmployeeCredential` table remains for migration compatibility but password hashes are no longer used. Requests and memberships retain their existing employee IDs.
+
 The executable source is [schema.prisma](../backend/prisma/schema.prisma). Both local SQLite and the remote libSQL database use the same product tables.
 
 | Entity | Responsibility |
 |---|---|
-| Employee | Demo identity, display name and unique email |
+| Employee | Employee identity, display name and unique login email |
 | Department | Stable ID, unique slug and displayed name |
 | DepartmentMembership | Composite employee/department membership used for authorization |
 | ServiceRequest | Unique ticket number, title, description, priority, sender, receiving department, status, timestamps and optional unique idempotency key/payload fingerprint |

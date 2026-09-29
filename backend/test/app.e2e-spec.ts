@@ -1,3 +1,4 @@
+import { AuthService } from '../src/auth.js';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -117,6 +118,8 @@ describe('AppController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideProvider(AuthService)
+      .useValue({ employee: async () => ({ id: 'employee-1' }) })
       .overrideProvider(PrismaService)
       .useValue(createTestDatabase())
       .compile();

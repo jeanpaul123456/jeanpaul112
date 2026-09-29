@@ -5,7 +5,6 @@ export async function api(path, employeeId = "", options = {}) {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "x-employee-id": employeeId,
         ...options.headers,
       },
     });
@@ -22,6 +21,8 @@ export async function api(path, employeeId = "", options = {}) {
         "The service could not complete this request. Please try again.",
     );
     error.review = data?.review;
+    error.status = response.status;
+    if (response.status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('session-expired'));
     throw error;
   }
   if (!data)

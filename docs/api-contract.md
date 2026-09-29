@@ -1,6 +1,12 @@
 # Service Request API contract
 
-Local base URL: `http://127.0.0.1:3000`; remote clients use the deployed service origin. Requests/responses use JSON. Demo identity is the `x-employee-id` header. Request endpoints require a known employee; absent/unknown identity returns `401`. The directory endpoint is public for the demo selector. This is a fictional-data demo, not password authentication.
+Local base URL: `http://127.0.0.1:3000`; remote clients use the deployed service origin. Requests/responses use JSON. Product endpoints require a valid `hub_session` cookie. Missing, invalid or expired sessions return `401`. The directory is protected. Caller-supplied `x-employee-id` is ignored; identity comes from the server session.
+
+## Authentication
+
+`POST /auth/login` accepts `{ "email": "charbel@gmail.com", "username": "charbel" }`. Success returns 201 with the employee's id, displayName, email and department memberships, and sets an HttpOnly, SameSite=Strict session cookie lasting eight hours (Secure in production). No password or verification code is required. Matching email/username pairs select a demo identity; session tokens are not returned in JSON. Mismatched identifiers return the same 401 message for known and unknown emails. Twenty failed attempts per IP/email pair within 15 minutes trigger 429; the in-memory limit resets on server restart.
+
+`GET /auth/me` returns the signed-in employee. `POST /auth/logout` accepts `{}`, revokes the current session and clears the cookie. Send `Content-Type: application/json` on write operations. A supplied Origin must match APP_ORIGIN or Render’s public URL when configured; otherwise it must match the request origin. Loopback Vite origins on port 5173 are also accepted in local development only. Browser requests use same-origin cookies automatically; API tools must retain cookies after login. `/health` and `/health/ready` remain public. No self-registration or password-reset endpoint is provided.
 
 ## Operational endpoints
 
@@ -13,12 +19,12 @@ The running server returns an `X-Request-Id` header and logs the corresponding m
 - `status`: `Submitted`, `Assigned`, `In Progress`, `Completed`, `Rejected`.
 - `priority`: `High`, `Medium`, `Low` (omitted on creation defaults to Medium).
 - Times are ISO-8601 UTC strings. A history note and changedBy may be null.
-- Employee object: `{ "id": "employee-4", "displayName": "Charbel Chouaifaty", "email": "charbel@example.com" }`.
+- Employee object: `{ "id": "employee-4", "displayName": "Charbel Chouaifaty", "email": "charbel@gmail.com" }`.
 - Department object: `{ "id": "IT", "name": "Information Technology", "slug": "it" }`.
 
 ## POST /requests
 
-Header: `x-employee-id: employee-4`.
+Use the session cookie obtained by signing in as the requesting employee.
 Optional header: `Idempotency-Key: <unique-key>` (8–128 safe characters). Clients should reuse the same key when retrying an unchanged submission. The server returns the original ticket for an identical retry; reuse with a different employee or payload returns `409` and creates nothing.
 
 ```json
@@ -52,7 +58,7 @@ Response `200`:
   "title":"Laptop will not start",
   "description":"The screen stays black when I press power.",
   "priority":"High",
-  "employee":{"id":"employee-4","displayName":"Charbel Chouaifaty","email":"charbel@example.com"},
+  "employee":{"id":"employee-4","displayName":"Charbel Chouaifaty","email":"charbel@gmail.com"},
   "department":{"id":"IT","name":"Information Technology","slug":"it"},
   "status":"Submitted",
   "createdAt":"2026-09-16T10:00:00.000Z",
@@ -63,7 +69,7 @@ Response `200`:
 
 ## PATCH /requests/:ticketNumber/status
 
-Receiving-department staff only. Example header: `x-employee-id: employee-1`.
+Receiving-department staff only, identified by their authenticated session.
 
 ```json
 {"status":"Assigned","note":"IT received your request and will check your laptop."}
@@ -105,7 +111,7 @@ The frontend displays the message and retains an unsent draft on a failed submis
 
 ## Completion notification endpoints
 
-`GET /notifications` requires `x-employee-id` and returns only that employee's completed requests, newest first:
+`GET /notifications` requires a session and returns only that employee's completed requests, newest first:
 
 ```json
 [{"ticketNumber":"REQ-1001","title":"Laptop will not start","message":"Information Technology completed your request.","completedAt":"2026-09-16T10:00:00.000Z","readAt":null}]
@@ -125,7 +131,7 @@ No credentials are returned. The frontend uses this to explain how the draft wil
 
 ## POST /ai/review-request
 
-Requires a known employee in `x-employee-id`. Reviews a draft without creating a request or changing history.
+Requires an authenticated employee session. Reviews a draft without creating a request or changing history.
 
 ```json
 {"title":"Laptop will not start","description":"My laptop does not start even with its charger connected. I cannot access my work and need IT assistance.","departmentSlug":"it","priority":"High"}
@@ -163,11 +169,11 @@ The legacy `POST /requests` endpoint remains available without an AI review. AI 
 
 | Mode | Behavior |
 | --- | --- |
-| `gemini` | Google Gemini structured review; requires GEMINI_API_KEY. Default model: gemini-3.5-flash-lite. |
+| `gemini` | Google Gemini structured review; requires GEMINI_API_KEY. Default model: gemini-3.1-flash-lite. |
 | `local` or unset | Offline completeness and placeholder rules. No external call and no semantic AI understanding. |
 | `openai` | Optional OpenAI integration using its separate credentials. |
 
-Unrecognized mode values currently use local checks. In Gemini mode, low-level network failures and selected provider-rejection responses use the deterministic `gemini-fallback` review so the draft can still be checked against the trusted department catalog. Gemini timeouts, quota errors, blocked or incomplete responses, and invalid structured output remain errors and do not create a request.
+Unrecognized mode values currently use local checks. In Gemini mode, provider and network failures return an error and leave the draft unsent; there is no automatic local or paid-provider fallback. A provider HTTP 503 is retried once, with a bounded delay, before returning an error if it is still unavailable. Timeouts, quota errors, blocked or incomplete responses, and invalid structured output do not create a request.
 
 Errors: 401 unknown/missing employee; 400 invalid draft or clarification required; 409 idempotency key reused for different content; 503 missing credentials, Gemini quota exhaustion, or temporary Gemini unavailability; 502 other provider failures or blocked/incomplete response/invalid output; 504 Gemini timeout. None of these review failures creates a request. The frontend retains the draft. Keys and raw provider errors are not returned.
 

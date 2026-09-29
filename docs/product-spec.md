@@ -17,6 +17,6 @@ Only staff in the receiving department can accept, start, complete or reject tha
 
 ## Scope
 
-The final keeps one narrow service-request journey. Demo identities and fictional data are intentional. Enterprise login, attachments, email delivery, external company integrations, RAG and autonomous agents are outside this release. Hosting, health, logs and recovery evidence are required; unrelated product screens are not.
+The final keeps one narrow service-request journey. Employee email/username login is required; email and username are matched without a password or verification; this is demo identification and fictional data is required. Enterprise SSO, attachments, email delivery, external company integrations, RAG and autonomous agents are outside this release. Hosting, health, logs and recovery evidence are required; unrelated product screens are not.
 
 The [original Week 1 design](../product-spec.md) records the earlier exploration. This document describes what is implemented now. See [the API contract](api-contract.md) and [release operations](week5-release-operations.md) for the technical boundaries and remaining deployment work.

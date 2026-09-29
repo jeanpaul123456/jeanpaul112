@@ -3,7 +3,8 @@ if (!origin || !/^https?:\/\//.test(origin)) throw new Error('Usage: npm run smo
 const results = [];
 for (const path of ['/app/', '/health', '/health/ready', '/directory']) {
   const response = await fetch(new URL(path, origin), { signal: AbortSignal.timeout(90000) });
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+  const expected = path === '/directory' ? 401 : 200;
+  if (response.status !== expected) throw new Error(`${path}: expected HTTP ${expected}, got ${response.status}`);
   const content = await response.text();
   if (path === '/app/' && !content.includes('<html')) throw new Error('Frontend HTML missing');
   if (path === '/health/ready') {

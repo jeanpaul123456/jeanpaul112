@@ -2,9 +2,11 @@
 
 ## Release status
 
-### Current working-tree delta — pending deployment
+**Login update pending deployment:** email/username demo access now replaces passwords. Apply migration `004-employee-username` and seed during normal startup. `EMPLOYEE_INITIAL_PASSWORDS` is no longer required. Repeat the live journey on the new deployed SHA. Anyone knowing a pair can select that account; do not use confidential data.
 
-On September 28, the current candidate passed the strict local release gate: both builds, 27 unit tests, 42 API/database tests, 5 browser tests, backend lint, and **8/8 live/deterministic AI evaluations**. See [the combined gate report](release-gate-results.json) and [AI evaluation details](week4-ai-eval-results.json). The gate ran against the working tree based on commit `1fcbd3d`; its report correctly records that the tree was changed. The last health check reported deployed release `1fcbd3d93090ec09d096f71c50105e8cd4862f77`; the local candidate includes changes beyond that deployment. The idempotency change and forward migration `002-idempotency` are not yet deployed. **This candidate is not yet GO for final submission:** commit and push the reviewed changes, deploy that exact SHA, verify the migration, then pass live smoke and the critical browser journey on that deployed SHA. No deployment was performed as part of the local gate.
+### Current verification — September 29, Beirut time
+
+The independent review verified deployed release `9f3d3d09a29631acf33397cff10b2a70a54a67c9`, database readiness and Gemini mode. Both builds, 27 unit tests, 42 API/database tests, 5 browser tests, backend lint and **8/8 AI evaluations** passed. Live smoke passed, and REQ-1004 completed the browser journey from Gemini submission to staff completion and requester notification. Requests from before the forward migration remain visible. See [the review](final-review-2026-09-29.md), [gate report](release-gate-results.json) and [AI results](week4-ai-eval-results.json). No new deployment or deliberate provider outage was performed during this review. Commit the updated evidence, verify its deployed SHA and freeze that SHA for submission.
 
 The application is prepared for a single Render web service with a separate Turso/libSQL database. React is served by NestJS at `/app/`, so the browser and API share one origin. Local development still uses SQLite.
 
@@ -38,7 +40,7 @@ The free service can sleep when idle; allow for a cold start before the defense.
 | `HOST`, `PORT` | Listen address and hosting-assigned port |
 | `RENDER_GIT_COMMIT` / `RELEASE_SHA` | Release identity returned by health endpoints |
 
-This is a public teaching demo. The employee selector is the documented demo identity mechanism, not password authentication. Anyone with the link can choose a demo role. The API still enforces request ownership, department membership and lifecycle rules for that identity. Use fictional requests only. Real employee data and company credentials do not belong here.
+The login update requires an employee email/username and a valid server-side session. Caller-selected identity headers are ignored. The API enforces request ownership, department membership and lifecycle rules. Seed configures the email/username pairs listed in the README. No password or email verification is performed. Use fictional requests only. This is not enterprise SSO and has no email password-reset service.
 
 ## Release gate
 
@@ -56,7 +58,7 @@ After deployment:
 npm run smoke -- https://YOUR-SERVICE.onrender.com
 ```
 
-This read-only check verifies frontend HTML, health, database readiness and the directory. It does not claim a successful live AI call or replace the browser journey.
+This read-only check verifies frontend HTML, health and database readiness, and expects the protected directory to reject an unauthenticated caller with 401. It does not claim a successful live AI call or replace the browser journey.
 
 ## Health and signals
 
@@ -86,12 +88,12 @@ If recovery fails, keep the decision NO-GO. Fix the cause and repeat the critica
 | Evidence | Current status |
 |---|---|
 | Public app URL | https://jeanpaul112.onrender.com/app/ — verified September 28 |
-| Final deployed and submitted SHA | Recovery-tested application: `9572674c3872634ec2c4f529eab551cb395a20b5`; match the final documentation commit to `/health` before submission |
-| Automated gate | Passed September 26: [dated report](release-gate-results.json), 71 deterministic tests + 8 AI cases; source changes were uncommitted during this run |
+| Latest verified deployed SHA | `9f3d3d09a29631acf33397cff10b2a70a54a67c9`; the final submitted SHA must include the reviewed documentation and match `/health` |
+| Automated gate | Passed September 29 Beirut time: [dated report](release-gate-results.json), 74 deterministic tests + 8 AI cases; lint passed separately |
 | Remote browser journey + authorization rejection | Passed September 28, fictional ticket REQ-1001; unauthorized HR action returned 403 |
 | Record persistence across remote restart | Passed: REQ-1001 and its history survived the initial upgrade and the controlled configuration redeployments |
 | Controlled provider failure + successful recovery | Passed: model unavailable → HTTP 502 with retained draft/no ticket → restored model → HTTP 201, REQ-1002 completed through UI |
 | Post-recovery smoke | Passed September 28 at 16:10:33 UTC: frontend, health, readiness and directory all HTTP 200 |
 | Final GO, time and remaining risks | GO for tested application after recovery on September 28; documented demo limitations below remain |
 
-Remaining known limitations: demo identity can be impersonated; free services have cold starts and quotas; AI judgments vary. Submission retries are idempotent when the client reuses its key; older clients that omit the optional key do not get that guarantee. These are explicit teaching-demo limits, not claims of enterprise readiness.
+Remaining known limitations: email/username pairs can be used by anyone who knows them and login rate limits are in-memory; free services have cold starts and quotas; AI judgments vary. Submission retries are idempotent when the client reuses its key; older clients that omit the optional key do not get that guarantee. These are explicit teaching-demo limits, not claims of enterprise readiness.

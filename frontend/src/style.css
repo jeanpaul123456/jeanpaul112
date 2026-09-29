@@ -4,6 +4,28 @@
   background: #f6f8f5;
   font-synthesis: none;
 }
+.login-page {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: radial-gradient(ellipse at top left, #dfece3, #f6f8f5 65%);
+}
+.login-card {
+  width: min(100%, 440px);
+  padding: 36px;
+  border: 1px solid #d7e2d9;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 16px 48px #18382f12;
+}
+.login-card .brand { color: #183e33; margin-bottom: 30px; }
+.login-card h1 { font-size: 30px; margin: 10px 0; }
+.login-card form { display: grid; gap: 12px; margin-top: 26px; }
+.login-card input { width: 100%; padding: 12px; border: 1px solid #9dac9f; border-radius: 8px; }
+.login-card button { margin-top: 10px; }
+.login-card .login-help { margin-top: 24px; font-size: 13px; line-height: 1.6; color: #52685e; }
 * {
   box-sizing: border-box;
 }

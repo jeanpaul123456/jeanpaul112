@@ -25,9 +25,26 @@ model Employee {
   id          String @id
   displayName String
   email       String @unique
+  username    String? @unique
   requests    ServiceRequest[]
   memberships DepartmentMembership[]
   changes     RequestStatusHistory[]
+  credential EmployeeCredential?
+  sessions LoginSession[]
+}
+
+model EmployeeCredential {
+  employeeId String @id
+  passwordHash String
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model LoginSession {
+  tokenHash String @id
+  employeeId String
+  expiresAt DateTime
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  @@index([employeeId])
 }
 
 model Department {

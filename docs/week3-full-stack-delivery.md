@@ -32,7 +32,7 @@ Each request has a title, description, creator, destination department, priority
 - Denied: Elie, an HR member, attempts to accept that IT request (`403`). Neither status nor history changes.
 - All employees, including staff, may submit to any valid department.
 
-**Identity limitation:** this local teaching slice uses a documented demo employee selector and `x-employee-id`. It is not production authentication and the header can be changed by the caller. The server checks authorization for that selected identity. Company sign-in and trusted server-side identity are future work. The server binds to loopback.
+**Authentication update:** the final login flow replaces the original teaching selector. Employees now sign in with email/username and an HttpOnly session cookie. The backend discards caller-supplied identity headers and still enforces department membership and ownership. Historical selector-based steps below should be exercised by signing out and signing in as the named employee.
 
 ## Invalid request deliberately rejected
 
@@ -67,11 +67,11 @@ Backend integration tests and browser tests use isolated temporary databases. Br
 
 ## Manual demonstration
 
-1. Follow README setup, start the app, and choose Charbel Chouaifaty.
+1. Follow README setup, start the app, and sign in as Charbel Chouaifaty.
 2. Send **Laptop will not start** to Information Technology with a description and High priority.
 3. Open the saved request and observe Submitted, with other stages still upcoming.
-4. Choose Elie Massoud. His HR inbox does not contain the IT request.
-5. Choose Jean-Paul Chouaifaty, open Department inbox, and open the request.
+4. Sign out and sign in as Elie Massoud. His HR inbox does not contain the IT request.
+5. Sign out and sign in as Jean-Paul Chouaifaty, open Department inbox, and open the request.
 6. Accept, start work, and mark completed; add a useful resolution message.
 7. Return to Charbel. Open the request and confirm all recorded steps and messages.
 8. Restart the application. The same request remains saved.

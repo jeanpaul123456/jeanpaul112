@@ -5,10 +5,12 @@ import { AppService } from './app.service.js';
 import { DatabaseModule } from './database/database.module.js';
 import { TrackingModule } from './tracking/tracking.module.js';
 import { HealthController } from './health.controller.js';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthController, AuthService, SessionGuard } from './auth.js';
 
 @Module({
   imports: [DatabaseModule, TrackingModule],
-  controllers: [AppController, AiController, HealthController],
-  providers: [AppService],
+  controllers: [AppController, AiController, HealthController, AuthController],
+  providers: [AppService, AuthService, { provide: APP_GUARD, useClass: SessionGuard }],
 })
 export class AppModule {}

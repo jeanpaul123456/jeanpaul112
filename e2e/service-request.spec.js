@@ -6,7 +6,7 @@ test.beforeEach(async ({ page, request }) => {
   await page.route("**/ai/submit-request", async (route) => {
     const response = await request.post("/requests", {
       headers: {
-        "x-employee-id": route.request().headers()["x-employee-id"],
+        Cookie: (await page.context().cookies()).map(c => c.name + "=" + c.value).join("; "),
         "Idempotency-Key": route.request().headers()["idempotency-key"],
       },
       data: route.request().postDataJSON(),
@@ -16,9 +16,15 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 async function choose(page, name) {
-  await page
-    .getByLabel("Demo employee", { exact: true })
-    .selectOption({ label: name });
+  await expect(page.getByText('Checking your session…')).toHaveCount(0);
+  if (await page.getByRole('button', { name: 'Sign out', exact: true }).count()) {
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  }
+  const emails = { 'Charbel Chouaifaty': 'charbel@gmail.com', 'Jean-Paul Chouaifaty': 'jeanpaul@gmail.com', 'Elie Massoud': 'elie@gmail.com' };
+  await page.getByLabel('Email address').fill(emails[name]);
+  await page.getByLabel('Username', { exact: true }).fill(emails[name].split('@')[0]);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByText('Signed in as ' + name)).toBeVisible();
   await expect(page.getByRole("status")).not.toHaveText("Loading requests…");
 }
 async function draft(page, title) {
@@ -36,6 +42,26 @@ async function draft(page, title) {
     .getByRole("radio", { name: "High Urgent problem Work is blocked" })
     .check();
 }
+
+test('login rejects mismatched usernames, survives reload and signs out securely', async ({ page }) => {
+  await page.goto('/app/');
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '＋ New request', exact: true })).toHaveCount(0);
+  await page.getByLabel('Email address').fill('charbel@gmail.com');
+  await page.getByLabel('Username', { exact: true }).fill('incorrect-password');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('Email or username is incorrect.');
+  await page.screenshot({ path: 'test-results/employee-login.png', fullPage: true });
+  await choose(page, 'Charbel Chouaifaty');
+  await page.reload();
+  await expect(page.getByText('Signed in as Charbel Chouaifaty')).toBeVisible();
+  await expect(page.getByLabel('Demo employee')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+});
 
 test("employee submits, only receiving staff manages, and employee sees persisted progress and resolution", async ({
   page,
@@ -61,8 +87,9 @@ test("employee submits, only receiving staff manages, and employee sees persiste
   await expect(
     page.getByRole("button", { name: "Accept request", exact: true }),
   ).toHaveCount(0);
+  const hrLogin = await request.post('/auth/login', { data: { email: 'elie@gmail.com', username: 'elie' } });
   const denied = await request.patch(`/requests/${ticket}/status`, {
-    headers: { "x-employee-id": "employee-2" },
+    headers: { Cookie: hrLogin.headers()['set-cookie'].split(';')[0] },
     data: { status: "Assigned" },
   });
   expect(denied.status()).toBe(403);
@@ -152,7 +179,7 @@ test("expected network failure keeps the draft and allows a successful retry", a
     firstKey = submitted.headers()["idempotency-key"];
     const saved = await request.post("/requests", {
       headers: {
-        "x-employee-id": submitted.headers()["x-employee-id"],
+        Cookie: (await page.context().cookies()).map(c => c.name + "=" + c.value).join("; "),
         "Idempotency-Key": firstKey,
       },
       data: submitted.postDataJSON(),
@@ -187,7 +214,7 @@ test("expected network failure keeps the draft and allows a successful retry", a
   ).toHaveCount(1);
   expect(retryKey).toBe(firstKey);
   const requests = await request.get("/requests", {
-    headers: { "x-employee-id": "employee-4" },
+    headers: { Cookie: (await page.context().cookies()).map(c => c.name + "=" + c.value).join("; ") },
   });
   expect((await requests.json()).filter((item) => item.title === title)).toHaveLength(1);
 });
@@ -196,6 +223,7 @@ test("simple interface shows named stages without counters or filter controls", 
   page,
 }) => {
   await page.goto("/app/");
+  await choose(page, 'Charbel Chouaifaty');
   await expect(
     page.getByRole("list", { name: "Request journey" }),
   ).toContainText("SubmittedAcceptedIn progressCompleted");

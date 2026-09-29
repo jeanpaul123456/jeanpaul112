@@ -6,9 +6,9 @@ Employees choose IT, Human Resources, or Finance, describe a problem, and select
 
 ## Final release handoff
 
-**Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** Select Charbel Chouaifaty to submit a fictional request; select Jean-Paul Chouaifaty to handle IT requests. No password is needed for the demo. The September 28 live check verified AI submission, staff processing, completion notifications and wrong-department denial. Persistence through service redeployments and the controlled AI failure/recovery drill also passed; see [release operations](docs/week5-release-operations.md). Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
+**Live app: [Open Service Hub](https://jeanpaul112.onrender.com/app/).** The email/username login update is saved locally and has not yet been deployed. The seed now configures the email/username demo accounts; no password environment variable is needed. Earlier live verification covers the previous employee-selector version. Continue using the same [public repository](https://github.com/jeanpaul123456/jeanpaul112).
 
-**Final candidate status: NOT YET DEPLOYED.** The current candidate includes idempotent submissions and a forward database migration. On September 28, the strict release gate passed **8/8 AI evaluations** after both builds, 27 unit tests, 42 API/database tests, and 5 browser tests passed; backend lint also passed. The candidate is not yet deployed. Apply and verify the migration, then repeat the live smoke and critical user journey against the exact deployed SHA before claiming GO. Existing live evidence above describes the previously verified deployment.
+**Login update:** both builds, 27 unit tests, 48 API/database tests and 6 browser tests passed. The previous live release is `9f3d3d0`; these source changes require a new deployment and live verification before submission.
 
 The [submission guide](docs/final-submission.md) contains the four email recipients, exact subject format, required fields, push commands and defense checklist. Deadline: **September 30, 2026 at 12:00 PM Beirut time**.
 
@@ -56,6 +56,21 @@ Open **http://localhost:3000/app/**. Keep the terminal running. Stop it with Ctr
 
 The backend serves the compiled React app from `frontend/dist`. After editing code, stop the server, run `npm run build`, then `npm start` again.
 
+## Employee demo access
+
+Sign in with the matching email and username below. No password or email verification is used, as requested. These are application demo identifiers, not Gmail accounts created or verified by the app. The application does not send mail to them.
+
+| Employee | Email | Username |
+|---|---|---|
+| Jean-Paul Chouaifaty (IT) | jeanpaul@gmail.com | jeanpaul |
+| Elie Massoud (HR) | elie@gmail.com | elie |
+| Maria Boutros (Finance) | maria@gmail.com | maria |
+| Charbel Chouaifaty (requester) | charbel@gmail.com | charbel |
+
+Setup updates these four existing employee records while preserving their IDs, requests and memberships. Migration `004-employee-username` adds the username field; earlier migrations remain unchanged. Seed also updates the local `.tmp/employee-logins.txt` with the email/username pairs. `EMPLOYEE_INITIAL_PASSWORDS` is no longer read or required.
+
+A session cookie still controls access to product endpoints and expires after eight hours or sign-out. This is demo access, not secure employee authentication: anyone who knows a listed pair can use that account. Use fictional data only. No verification code, password or Google sign-in is involved.
+
 ## Development with live reload (optional)
 
 After setup, use two terminals in the repository root:
@@ -70,19 +85,22 @@ npm --prefix frontend run dev
 
 Open http://localhost:5173/app/. Vite proxies API requests to the backend on port 3000.
 
+The origin check accepts the loopback Vite origin in development. On Render it uses `RENDER_EXTERNAL_URL`; for a custom domain, set `APP_ORIGIN` to the exact public origin (scheme, hostname and optional port, without `/app/`). Restart the backend after changing this setting. Unrelated origins remain blocked.
+
+
 ## Exercise the complete flow
 
-1. Choose **Charbel Chouaifaty** in Demo employee.
+1. Sign in as **Charbel Chouaifaty** using `charbel@gmail.com` and username `charbel`.
 2. Click **New request**. For example, use the title “Laptop will not start” and describe what happened, what you tried, and how work is affected. Choose **Information Technology** and a priority, then click **Send request**. The configured checker runs automatically. If feedback appears, correct the draft and send again.
 3. Open the request in My requests: it is Submitted, and the remaining stages are Upcoming.
-4. Choose **Jean-Paul Chouaifaty**, open Department inbox, and open the request.
+4. Sign out, sign in as **Jean-Paul Chouaifaty** (`jeanpaul@gmail.com`), open Department inbox, and open the request.
 5. Click Accept request, then Start work, then Mark completed. Include a useful message such as “Replaced the charger and verified startup.”
-6. Return to Charbel. Open Notifications, then open the completion notification. Verify the status, named actors, dates, and resolution message. The notification becomes read and stays read after a reload.
+6. Sign out and sign in as Charbel. Open Notifications, then open the completion notification. Verify the status, named actors, dates, and resolution message. The notification becomes read and stays read after a reload.
 7. Restart the server. The request is still saved in `backend/dev.db`.
 
 The UI calls the API's **Assigned** state **Accepted**. Staff may reject an active request with a required reason. Completed/rejected requests cannot change state. All employees can submit to all departments.
 
-| Employee | Demo ID (API only) | Staff inbox |
+| Employee | Provisioning ID | Staff inbox |
 |---|---|---|
 | Jean-Paul Chouaifaty | employee-1 | Information Technology |
 | Elie Massoud | employee-2 | Human Resources |
@@ -91,7 +109,7 @@ The UI calls the API's **Assigned** state **Accepted**. Staff may reject an acti
 
 **Authorization demonstration:** Jean-Paul can process an IT request; Elie cannot. The UI does not show other departments' inboxes, and the API also rejects a forged wrong-department operation with `403`. A sender can read their own request but cannot process it unless they belong to the receiving department.
 
-**Demo identity:** the selector supplies `x-employee-id`. It is intentionally not production login: callers can switch that header. Membership and ownership checks are enforced for the selected identity. Local startup binds to the local machine; hosting uses `HOST=0.0.0.0`. Use fictional data only in the public teaching demo.
+**Demo session access:** the login page requires an email and username. An HttpOnly session cookie identifies the employee; caller-supplied `x-employee-id` is ignored. Membership and ownership rules still apply. Sign out to change accounts. Use fictional data in this capstone.
 
 ## Automated tests
 
@@ -150,7 +168,7 @@ See [the API contract](docs/api-contract.md), [Week 3 delivery](docs/week3-full-
 
 The employee form submits through `POST /ai/submit-request`. `POST /ai/review-request` reviews without creating a request, and `GET /ai/config` returns the selected review mode. The legacy `POST /requests` endpoint still supports manual intake without an AI review.
 
-The other main API routes are `/directory`, `POST /requests`, `GET /requests`, `GET /requests?department=it`, `GET /requests/:ticketNumber`, and `PATCH /requests/:ticketNumber/status`. Request endpoints require the demo employee header. Every request is persisted with its description, priority, destination, creator, status, and history.
+The other main API routes are `/directory`, `POST /requests`, `GET /requests`, `GET /requests?department=it`, `GET /requests/:ticketNumber`, and `PATCH /requests/:ticketNumber/status`. Product endpoints require a signed-in session cookie. Every request is persisted with its description, priority, destination, creator, status, and history.
 
 ## Expected failure and recovery
 
@@ -177,7 +195,7 @@ npm run db:setup
 
 ## Completion notifications
 
-Choose an employee to see their in-app Notifications button. Completed requests appear there with the title, department, and completion time. A dot and short message indicate unread updates. Open a notification to view the request and mark it read; read state is saved in SQLite. Only the requesting employee can read or acknowledge their notification. Existing completed requests also appear.
+Sign in to see your in-app Notifications button. Completed requests appear there with the title, department, and completion time. A dot and short message indicate unread updates. Open a notification to view the request and mark it read; read state is saved in SQLite. Only the requesting employee can read or acknowledge their notification. Existing completed requests also appear.
 
 Notifications refresh every 15 seconds while the page is visible, when the window regains focus, and when opening the panel. This is an in-app feature; it does not send email or operating-system push notifications.
 
@@ -226,7 +244,7 @@ A missing key, exhausted quota, unavailable provider, timeout, or invalid model 
 
 ## Verification and Week 4 status
 
-The historical September 26 release gate passed **71 tests** and 8 AI cases. On September 28, the current candidate passed the strict gate: both builds, 27 unit tests, 42 API/database tests, 5 browser tests, backend lint, and **8/8 AI evaluations**. The AI report is [saved here](docs/week4-ai-eval-results.json), and the combined gate report is [here](docs/release-gate-results.json). Tests cover idempotent retry after commit, changed-payload conflict, migration checksum protection, and recovery after a lost response. This local gate does not apply the forward migration to the hosted database or constitute remote release approval. Deploy the reviewed commit and verify the exact SHA, migration, smoke check, and live critical journey before final submission.
+The login update passed both builds, **81 deterministic tests** (27 unit, 48 API/database, 6 browser), backend lint and **8/8 AI evaluations**. The AI report is [saved here](docs/week4-ai-eval-results.json), and the combined verification record is [here](docs/release-gate-results.json). Tests cover authenticated access, forged identity rejection, invalid credentials, expired/revoked sessions, login/logout, request retries and migration preservation. The earlier 71- and 74-test runs describe previous revisions. Local checks do not constitute remote release approval: deploy the reviewed commit and verify its SHA, migration, smoke check and authenticated live journey before submission.
 
 Automated AI tests use simulated provider responses. They check validation and failure handling without making paid calls. Browser coverage includes a real local-mode submission through the backend and isolated SQLite database; the manual lifecycle regression uses the legacy API.
 

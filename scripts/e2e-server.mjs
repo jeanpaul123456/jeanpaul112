@@ -12,7 +12,10 @@ database.exec(readFileSync(join(root, "backend/prisma/schema.sql"), "utf8"));
 database.exec(
   readFileSync(join(root, "backend/prisma/migrations/002-idempotency.sql"), "utf8"),
 );
+database.exec(readFileSync(join(root, 'backend/prisma/migrations/003-employee-login.sql'), 'utf8'));
+database.exec(readFileSync(join(root, 'backend/prisma/migrations/004-employee-username.sql'), 'utf8'));
 database.close();
+
 process.env.DATABASE_URL = `file:${databasePath.replaceAll("\\", "/")}`;
 process.env.PORT = "3101";
 process.env.OPENAI_API_KEY = ""; // Browser tests never make paid AI calls.

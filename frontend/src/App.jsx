@@ -451,14 +451,58 @@ function RequestCard({ request, onOpen }) {
 }
 
 export default function App() {
+  const [employee, setEmployee] = useState(null);
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api('/auth/me').then(setEmployee).catch(error => {
+      if (error.status !== 401) setError(error.message);
+    }).finally(() => setChecking(false));
+    const expired = () => { setEmployee(null); setError('Your session has expired. Please sign in again.'); };
+    window.addEventListener('session-expired', expired);
+    return () => window.removeEventListener('session-expired', expired);
+  }, []);
+  async function login(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setBusy(true); setError('');
+    try { setEmployee(await api('/auth/login', '', { method: 'POST', body: JSON.stringify({ email: form.get('email'), username: form.get('username') }) })); }
+    catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  }
+  async function logout() {
+    setBusy(true); setError('');
+    try { await api('/auth/logout', '', { method: 'POST', body: '{}' }); setEmployee(null); }
+    catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  }
+  if (checking) return <main className="login-page"><p role="status">Checking your session…</p></main>;
+  if (!employee) return <main className="login-page"><section className="login-card">
+    <a className="brand" href="./"><span className="brand-icon">S</span>Service Hub</a>
+    <p className="eyebrow">EMPLOYEE PORTAL</p><h1>Welcome back</h1>
+    <p>Sign in to send a request and follow its progress.</p>
+    <form onSubmit={login}>
+      <label htmlFor="login-email">Email address</label>
+      <input id="login-email" name="email" type="email" autoComplete="email" required maxLength={254} disabled={busy}/>
+      <label htmlFor="login-username">Username</label>
+      <input id="login-username" name="username" type="text" autoComplete="username" required maxLength={64} disabled={busy}/>
+      {error && <p role="alert">{error}</p>}
+      <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+    </form><p className="login-help">Enter your assigned email and username. Demo access only: no password or email verification is required.</p>
+  </section></main>;
+  return <Workspace key={employee.id} signedInEmployee={employee} onLogout={logout} logoutBusy={busy} authError={error}/>;
+}
+
+function Workspace({ signedInEmployee, onLogout, logoutBusy, authError }) {
   const [directory, setDirectory] = useState({
     employees: [],
     departments: [],
   });
   const [directoryError, setDirectoryError] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
+  const employeeId = signedInEmployee.id;
   const [view, setView] = useState("mine");
-  const [department, setDepartment] = useState("");
+  const [department, setDepartment] = useState(signedInEmployee.memberships[0]?.department.slug || '');
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState("");
@@ -467,7 +511,7 @@ export default function App() {
   const [newRequest, setNewRequest] = useState(false);
   const [ticket, setTicket] = useState(null);
   const sequence = useRef(0);
-  const employee = directory.employees.find((item) => item.id === employeeId);
+  const employee = signedInEmployee;
   const inbox = view === "department";
   const loadDirectory = useCallback(async () => {
     setDirectoryError("");
@@ -528,21 +572,6 @@ export default function App() {
     setListError("");
     setSynced("");
     if (next === view) load();
-  }
-  function changeEmployee(id) {
-    ++sequence.current;
-    setEmployeeId(id);
-    setDepartment(
-      directory.employees.find((item) => item.id === id)?.memberships[0]
-        ?.department.slug || "",
-    );
-    setView("mine");
-    setRequests([]);
-    setTicket(null);
-    setNewRequest(false);
-    setMessage("");
-    setListError("");
-    setSynced("");
   }
   return (
     <>
@@ -608,21 +637,11 @@ export default function App() {
             />
           )}
           <div className="identity">
-            <label htmlFor="employee">Demo employee</label>
-            <select
-              id="employee"
-              value={employeeId}
-              onChange={(event) => changeEmployee(event.target.value)}
-            >
-              <option value="">Choose your name</option>
-              {directory.employees.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.displayName}
-                </option>
-              ))}
-            </select>
+            <span>Signed in as {employee.displayName}</span>
+            <button className="secondary" onClick={onLogout} disabled={logoutBusy}>Sign out</button>
           </div>
         </header>
+        {authError && <p role="alert">{authError}</p>}
         {directoryError && (
           <div role="alert">
             {directoryError}{" "}
@@ -722,8 +741,7 @@ export default function App() {
           </div>
         </section>
         <footer>
-          Local demonstration · Employee selection is for testing; company
-          sign-in is not connected.
+          Internal Operations Service Hub · Signed-in employee access
         </footer>
       </main>
       {newRequest && employee && (

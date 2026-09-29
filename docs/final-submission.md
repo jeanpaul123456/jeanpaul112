@@ -6,6 +6,8 @@ Deadline: **Wednesday, September 30, 2026, 12:00 PM Beirut time**. Submit early 
 
 ## Project details
 
+**New login update:** deployment and live verification must be repeated for the email/username version. The previous live sign-off does not cover these new source changes. Use the email/username demo accounts in the README; no password or verification code is needed.
+
 | Field | Information |
 |---|---|
 | Project | Internal Operations Service Hub |
@@ -13,14 +15,14 @@ Deadline: **Wednesday, September 30, 2026, 12:00 PM Beirut time**. Submit early 
 | Stack | React, NestJS, Prisma; SQLite locally, libSQL configured for hosting |
 | AI | Gemini 3.1 Flash-Lite reviews clarity, consistency, department and priority |
 | Workflow | Submitted → Accepted → In Progress → Completed; staff can reject active requests with a reason |
-| Verification | September 28 strict release gate passed: both builds, 74 deterministic tests (27 unit, 42 API/database, 5 browser), backend lint, and 8/8 AI evaluations |
+| Verification | Login update: both builds, 79 deterministic tests (27 unit, 46 API/database, 6 browser), backend lint, and 8/8 AI evaluations passed locally |
 | Verified live app | https://jeanpaul112.onrender.com/app/ |
-| Last health-verified deployed commit | `1fcbd3d93090ec09d096f71c50105e8cd4862f77` on September 28; the final candidate is newer and not yet deployed |
-| Final submission status | Local release gate passed 8/8; final candidate still needs commit/push, deployment, migration verification, and live checks on its exact SHA |
+| Last health-verified deployed commit | `9f3d3d09a29631acf33397cff10b2a70a54a67c9` on September 29, Beirut time; live browser journey passed with REQ-1004 |
+| Final submission status | Login source changes are not deployed. Commit/push, deploy, repeat the authenticated live journey, and record the verified full SHA |
 
 AI is advisory. The backend validates its output, and department staff control acceptance and completion. Provider failure keeps the draft unsent. The public app uses demo identities and fictional data.
 
-The confirmed student name is Jean-Paul Chouaifaty. The strict local release gate passed 8/8 on September 28, including the live AI evaluations. The current candidate has not been deployed; its additive forward migration and changed application code still need remote verification. **Do not submit the historical deployed SHA as the final release.** Commit and push the reviewed candidate, deploy that exact commit, verify `/health` matches its full SHA, confirm the migration, and pass live smoke and the critical user journey. If any of those checks fail or remain undone, the final release remains pending.
+The confirmed student name is Jean-Paul Chouaifaty. The independent September 29 review passed both builds, 74 deterministic tests, lint, 8 AI evaluations, live smoke and the live request journey. The deployed application already includes the idempotency migration. See [the review](final-review-2026-09-29.md) for the exact scope. **The email has not been sent.** Save these updated documents in Git, push, verify that `/health` matches the intended final commit and repeat smoke after deployment. Use that full SHA in the email; later pushes do not change the frozen submission.
 
 ## Email draft
 
@@ -44,16 +46,17 @@ Full Name: Jean-Paul Chouaifaty
 Repository URL: https://github.com/jeanpaul123456/jeanpaul112
 Final Commit SHA: [full SHA from git rev-parse HEAD, matching the deployment]
 Live App URL: https://jeanpaul112.onrender.com/app/
-Demo Access / Roles: Open the app and use the Demo employee selector.
+Demo Access / Roles: Open the app and sign in.
+Reviewer credentials: charbel@gmail.com / charbel (requester); jeanpaul@gmail.com / jeanpaul (IT); elie@gmail.com / elie (HR); maria@gmail.com / maria (Finance).
 Charbel Chouaifaty submits requests. Jean-Paul Chouaifaty handles IT,
 Elie Massoud handles HR, and Maria Boutros handles Finance.
-No password is required for this fictional-data teaching demo.
+No password or verification code is required. This is fictional-data demo access.
 
 The README contains the user journey, setup, tests, AI evaluations,
 release checks and links to the Week 1–5 evidence.
 
-Suggested demo: select Charbel, submit a clear IT request, then select
-Jean-Paul to accept, start and complete it. Return to Charbel to view
+Suggested demo: sign in as Charbel, submit a clear IT request, then sign out
+and sign in as Jean-Paul to accept, start and complete it. Sign back in as Charbel to view
 the completion notification and saved history.
 
 Thank you,

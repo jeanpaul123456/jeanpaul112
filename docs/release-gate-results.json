@@ -1,6 +1,6 @@
 {
-  "checkedAt": "2026-09-28T19:48:10.617Z",
-  "commit": "19e81080c0c22ce6c3b096aa077cfe386ea9d311",
+  "checkedAt": "2026-09-29T10:03:12.204Z",
+  "commit": "9f3d3d09a29631acf33397cff10b2a70a54a67c9",
   "workingTreeChanged": true,
   "results": [
     {
@@ -10,8 +10,19 @@
     {
       "command": "npm run eval:ai",
       "passed": true
+    },
+    {
+      "command": "npm --prefix backend run lint",
+      "passed": true
     }
   ],
   "automatedGate": "PASS",
-  "finalGo": "PENDING: remote browser smoke, persistence after restart, failure/recovery and submitted SHA must be verified."
+  "finalGo": "PENDING: login update is local only. Configure hosted credentials, deploy, verify authenticated live journey and final SHA.",
+  "execution": "Commands run separately: npm run check, npm run eval:ai, npm --prefix backend run lint",
+  "testCounts": {
+    "unit": 27,
+    "apiDatabase": 46,
+    "browser": 6,
+    "ai": 8
+  }
 }

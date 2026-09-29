@@ -13,6 +13,10 @@ try {
   await applyBaseline(client, sql);
   const idempotencySql = readFileSync(new URL('./migrations/002-idempotency.sql', import.meta.url), 'utf8');
   await applyForwardMigration(client, '002-idempotency', idempotencySql);
+  const loginSql = readFileSync(new URL('./migrations/003-employee-login.sql', import.meta.url), 'utf8');
+  await applyForwardMigration(client, '003-employee-login', loginSql);
+  const usernameSql = readFileSync(new URL('./migrations/004-employee-username.sql', import.meta.url), 'utf8');
+  await applyForwardMigration(client, '004-employee-username', usernameSql);
   console.log('Remote schema is ready. Existing records were preserved.');
 } finally {
   client.close();
